@@ -1,7 +1,7 @@
 @setlocal
 @packaging\luajit packaging\packaging.lua
 @if errorlevel 1 goto :BAD
-goto :END
+@goto :END
 :BAD
 @echo.
 @echo *********************************************************
