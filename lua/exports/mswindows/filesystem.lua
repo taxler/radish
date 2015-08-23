@@ -120,6 +120,12 @@ return {
 			not not fail_if_exists)
 	end;
 	dir = function(path)
+		if path:sub(-1):match('[\\/]') then
+			path = path:sub(1, -2)
+		end
+		if not path:match('[%?%*]') then
+			path = path .. '\\*'
+		end
 		return t_win32_file_search(path)
 	end;
 }
