@@ -74,7 +74,7 @@ local t_win32_file_search = ffi.metatype('t_win32_file_search', {
 			if 0 == bit.band(kernel32.FILE_ATTRIBUTE_DIRECTORY, self.data.dwFileAttributes) then
 				filetype = 'file'
 			else
-				filetype = 'directory'
+				filetype = 'folder'
 			end
 			local path = winstr.utf8(self.data.cFileName)
 			return filetype, path
