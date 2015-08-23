@@ -3,9 +3,13 @@ package.path = 'lua/?.lua;lua/?/init.lua'
 
 local ffi = require 'ffi'
 
+
+local TITLE = 'Pumpkins for Everyone'
+
+
 local in_path = 'packaging/radish-runner.exe'
 local temp_path = 'packaging/temp_output.exe'
-local out_path = 'runner.exe'
+local out_path = string.format('%s.exe', TITLE)
 
 function package_error(msg)
 	io.stderr:write([[/!\ ]] .. (msg or 'unknown error')..'\r\n')
@@ -46,4 +50,4 @@ else
 	error('sorry!! ' .. ffi.os .. ' platform not yet supported')
 end
 
-os.execute ('start ' .. out_path)
+os.execute (string.format('start "" "%s"', out_path))
