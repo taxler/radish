@@ -1,6 +1,10 @@
 
+local lib = {}
+package.loaded[(...)] = lib
+
 local ffi = require 'ffi'
 require 'exports.mswindows.handles'
+require 'exports.mswindows.handles.module'
 require 'exports.typedef.bool32'
 
 ffi.cdef [[
@@ -112,4 +116,50 @@ ffi.cdef [[
 
 ]]
 
-return ffi.C
+local function make_int(i)
+	return ffi.cast('const wchar_t*', i)
+end
+
+lib.RT_ICON = make_int(3)
+lib.RT_GROUP_ICON = make_int(14)
+
+lib.make_int = make_int
+
+local function get_resource_for_module(module, resource_type, name, language)
+	if type(resource_type) == 'number' then
+		resource_type = make_int(resource_type)
+	elseif type(resource_type) == 'string' then
+		resource_type = winstr.wide(resource_type)
+	end
+	if type(name) == 'number' then
+		name = make_int(name)
+	elseif type(name) == 'string' then
+		name = winstr.wide(name)
+	end
+	local res
+	if language then
+		res = kernel32.FindResourceW(module, name, resource_type)
+	else
+		res = kernel32.FindResourceW(module, name, resource_type, winlang[language])
+	end
+	if res == nil then
+		return nil, 'resource not found'
+	end
+	local loaded = kernel32.LoadResource(module, res)
+	if loaded == nil then
+		return nil, 'unable to load resource'
+	end
+	local locked = kernel32.LockResource(loaded)
+	if locked == nil then
+		return nil, 'unable to lock resource'
+	end
+	return ffi.string(locked, kernel32.SizeofResource(module, res))
+end
+
+lib.get_for_module = get_resource_for_module
+
+function lib.get(resource_type, name, language)
+	return get_resource_for_module(nil, resource, name, language)
+end
+
+return lib
