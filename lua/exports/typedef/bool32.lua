@@ -3,7 +3,7 @@ local ffi = require 'ffi'
 
 ffi.cdef [[
 
-	typedef _Bool int32_t bool32;
+	typedef _Bool int bool32;
 
 ]]
 
