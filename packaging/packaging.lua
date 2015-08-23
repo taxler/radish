@@ -38,14 +38,13 @@ end
 
 if ffi.os == 'Windows' then
 	local mswin = require 'exports.mswindows'
-	local winstr = require 'exports.mswindows.strings'
 	local winfiles = require 'exports.mswindows.filesystem'
-	assert(winfiles.CopyFileW(winstr.wide(in_path), winstr.wide(temp_path), false), 'unable to copy file')
+	assert(winfiles.copy(in_path, temp_path, false), 'unable to copy file')
 	local resource_update = require 'exports.mswindows.handles.resource_update'
 	local resources = resource_update.begin(temp_path, true)
 	do_packaging(resources)
 	resources:commit()
-	assert(mswin.CopyFileW(winstr.wide(temp_path), winstr.wide(out_path), false), 'unable to copy file')
+	assert(winfiles.copy(temp_path, out_path, false), 'unable to copy file')
 else
 	error('sorry!! ' .. ffi.os .. ' platform not yet supported')
 end
