@@ -11,4 +11,11 @@ ffi.cdef [[
 
 ]]
 
-return ffi
+return {
+	is_invalid = function(handle)
+		return ffi.cast('intptr_t', handle) == -1
+	end;
+	get_invalid = function()
+		return ffi.cast('void*', ffi.cast('intptr_t', -1))
+	end;
+}
