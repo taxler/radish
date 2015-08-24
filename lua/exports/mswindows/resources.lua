@@ -335,4 +335,46 @@ end
 
 lib.encode_block = encode_block
 
+local function decode_block(encoded, i)
+	i = i or 1
+	local block = {}
+	local total_length = string.byte(encoded, i  ) + string.byte(encoded, i+1) * 0x100
+	local value_length = string.byte(encoded, i+2) + string.byte(encoded, i+3) * 0x100
+	local is_bytes = string.sub(encoded, i+4, i+5) == '\0\0'
+
+	local j = 6
+	while string.sub(encoded, i+j, i+j+1) ~= '\0\0' do
+		j = j + 2
+	end
+	local name_ptr = ffi.cast('const char*', encoded) + (i - 1) + 6
+	block.name = winstr.utf8(name_ptr, (j - 6) / 2)
+	j = j + 2
+	j = j + (4 - (j % 4)) % 4
+
+	if value_length == 0 then
+		block[is_bytes and 'bytes' or 'text'] = ''
+	else
+		if is_bytes then
+			block.bytes = string.sub(encoded, i+j, i+j+value_length-1)
+		else
+			block.text = winstr.utf8(ffi.cast('const char*', encoded) + (i - 1) + j, value_length / 2)
+			-- remove null terminator
+			block.text = block.text:match('(.-)%z?$')
+		end
+		j = j + value_length
+		j = j + (4 - (j % 4)) % 4
+	end
+
+	local end_pos = i + total_length
+	i = i + j
+
+	while i < end_pos do
+		block[#block+1], i = decode_block(encoded, i)
+	end
+
+	return block, end_pos
+end
+
+lib.decode_block = decode_block
+
 return lib
