@@ -1,3 +1,4 @@
 universe
 /*.exe
+/*.dll
 /packaging/temp_output.exe

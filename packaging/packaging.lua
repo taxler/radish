@@ -123,7 +123,7 @@ error 'Hello World!'
 
 		resources:commit()
 		winfiles.copy(self.path, out_path)
-		winfiles.copy('lua51.dll', [[..\lua51.dll]], true)
+		winfiles.copy('packaging/lua51.dll', 'lua51.dll', true)
 	end
 end
 
