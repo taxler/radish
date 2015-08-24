@@ -34,13 +34,32 @@ if ffi.os == 'Windows' then
 	context = {}
 
 	local winfiles = require 'exports.mswindows.filesystem'
+	local winres = require 'exports.mswindows.resources'
+	local winmodule = require 'exports.mswindows.handles.module'
 
+	local fixed_file_info = winres.VS_FIXEDFILEINFO()
+	local version_info_strings = {
+		-- Comments
+		CompanyName = 'The Creator';
+		FileDescription = TITLE;
+		FileVersion = '1.0.0.0';
+		InternalName = TITLE;
+		-- LegalCopyright
+		-- LegalTrademarks
+		OriginalFilename = out_path;
+		-- PrivateBuild - VS_FF_PRIVATEBUILD
+		ProductName = TITLE;
+		ProductVersion = '1.0.0.0';
+		-- SpecialBuild - VS_FF_SPECIALBUILD
+	}
+	function context:set_title(title)
+		version_info_strings['FileDescription'] = TITLE
+	end
 	function context:init(path)
 		winfiles.copy(path, temp_path)
 		self.path = temp_path
 	end
 	context.path = temp_path
-
 
 	context.icons = {}
 	function context:add_app_icon(image_path)
@@ -62,6 +81,39 @@ if ffi.os == 'Windows' then
 			resources:add_icon_group(icon.group_id, {icon})
 		end
 		resources:add_icon_group(1, self.icons)
+
+		local version_info_string_blocks = {}
+
+		for k,v in pairs(version_info_strings) do
+			version_info_string_blocks[#version_info_string_blocks+1] = {
+				name = k;
+				text = v;
+			}
+		end
+
+		local data = winres.encode_block {
+			name = 'VS_VERSION_INFO';
+			bytes = fixed_file_info:get_data();
+			{
+				name = 'StringFileInfo';
+				text = '';
+				{
+					name = string.format('%04x%04x', 0x0409, 0x04b0);
+					text = '';
+					unpack(version_info_string_blocks);
+				};
+			};
+			{
+				name = 'VarFileInfo';
+				text = '';
+				{
+					name = 'Translation';
+					bytes = string.char(0x09, 0x04, 0xb0, 0x04);
+				};
+			};
+		}
+
+		resources:add(winres.RT_VERSION, winres.VS_VERSION_INFO, data)
 
 		resources:commit()
 		winfiles.copy(self.path, out_path)
