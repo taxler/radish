@@ -12,10 +12,10 @@
 
 @setlocal
 
-cl /nologo /c /O2 /W3 /D_CRT_SECURE_NO_DEPRECATE radish-runner.c radish-resources.c
+cl /nologo /c /O2 /W3 /D_CRT_SECURE_NO_DEPRECATE radish-*.c
 @if errorlevel 1 goto :BAD
 
-link /nologo /out:..\radish-runner.exe /subsystem:windows radish-runner.obj radish-resources.obj user32.lib gdi32.lib version.lib lua51.lib
+link /nologo /out:..\radish-runner.exe /subsystem:windows radish-*.obj user32.lib gdi32.lib version.lib lua51.lib
 @if errorlevel 1 goto :BAD
 
 @del *.obj

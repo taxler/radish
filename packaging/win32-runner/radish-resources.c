@@ -2,8 +2,9 @@
 #include <windows.h>
 #include <strsafe.h>
 #include "radish-resources.h"
-
-wchar_t query_buf[] = L"\\StringFileInfo\\xxxxxxxx\\ProductName";
+#include "radish-text.h"
+#include "lua.h"
+#include "lauxlib.h"
 
 void* get_file_version_info() {
 	HMODULE module = GetModuleHandleW(NULL);
@@ -50,4 +51,54 @@ wchar_t* get_title(void* fvinfo, WORD id1, WORD id2) {
 		return NULL;
 	}
 	return title;
+}
+
+wchar_t* radish_get_title() {
+	void* fvinfo;
+	WORD id1, id2;
+	wchar_t* title;
+	if ((fvinfo = get_file_version_info()) == NULL) {
+		return DEFAULT_APP_TITLE;
+	}
+	if (!get_translation_id(fvinfo, &id1, &id2)) {
+		free(fvinfo);
+		return DEFAULT_APP_TITLE;
+	}
+	if ((title = get_title(fvinfo, id1, id2)) == NULL) {
+		free(fvinfo);
+		return DEFAULT_APP_TITLE;
+	}
+	free(fvinfo);
+	return title;
+}
+
+int radish_load_init_script(lua_State *L, const wchar_t* name) {
+	HRSRC hrsrc;
+	HGLOBAL not_hglobal;
+	LPVOID data;
+	int result;
+	if ((hrsrc = FindResourceW(NULL, name, L"INIT")) == NULL) {
+		lua_pushliteral(L, "init script not found: ");
+		radish_push_utf8(L, name);
+		lua_concat(L, 2);
+		return 1;
+	}
+	if ((not_hglobal = LoadResource(NULL, hrsrc)) == NULL) {
+		lua_pushliteral(L, "unable to load init script resource: ");
+		radish_push_utf8(L, name);
+		lua_concat(L, 2);
+		return 1;
+	}
+	if ((data = LockResource(not_hglobal)) == NULL) {
+		lua_pushliteral(L, "unable to lock init script resource: ");
+		radish_push_utf8(L, name);
+		lua_concat(L, 2);
+		return 1;
+	}
+	lua_pushliteral(L, "=");
+	radish_push_utf8(L, name);
+	lua_concat(L, 2);
+	result = luaL_loadbuffer(L, (const char*)data, SizeofResource(NULL, hrsrc), lua_tostring(L, -1));
+	lua_remove(L, -2);
+	return result;
 }

@@ -1,0 +1,3 @@
+EXPORTS
+	radish_get_state
+	radish_wait_message
