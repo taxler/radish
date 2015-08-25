@@ -8,6 +8,8 @@ ffi.cdef [[
 	void* malloc(size_t);
 	void free(void*);
 
+	FILE* freopen(const char* filename, const char* mode, FILE*);
+
 ]]
 
 return ffi.C
