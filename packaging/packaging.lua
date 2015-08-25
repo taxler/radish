@@ -115,11 +115,69 @@ if ffi.os == 'Windows' then
 
 		resources:add(winres.RT_VERSION, winres.VS_VERSION_INFO, data)
 
+		local function do_module_folder(path, prefix)
+			for path_type, name in winfiles.dir(path) do
+				if path_type == 'folder' then
+					if name ~= '.' and name ~= '..' then
+						do_module_folder(
+							path .. '\\' .. name,
+							prefix .. name .. '.')
+					end
+				else
+					local script_name = name:match('^(.-)%.[lL][uU][aA]$')
+					if script_name then
+						local module_name
+						if script_name:lower() == 'init' then
+							module_name = prefix:match('^(.-)%.?$')
+						else
+							module_name = prefix .. script_name
+						end
+						local f = assert(io.open(path .. '\\' .. name, 'rb'))
+						local data = f:read('*a')
+						f:close()
+						resources:add('LUA', module_name, data)
+					end
+				end
+			end
+		end
+
+		do_module_folder('lua', '')
+
 		resources:add('INIT', 'MAIN.LUA', [[
 
-error 'Hello World!'
+local boot = require 'radish.mswindows.boot'
+
+boot.main_loop()
 
 ]])
+
+		local selflib_exports_buf = {[=[
+
+local ffi = require 'ffi'
+require 'exports.mswindows'
+
+ffi.cdef [[
+
+]=]}
+		
+		for type, header_name in winfiles.dir('packaging/win32-runner/radish-*.h') do
+			local f = assert(io.open('packaging/win32-runner/' .. header_name, 'rb'))
+			local data = f:read('*a')
+			f:close()
+			for part in data:gmatch('@+%s*BEGIN%s*:%s*EXPORTS%s*@+(.-)@+END%s*:%s*EXPORTS%s*@+') do
+				selflib_exports_buf[#selflib_exports_buf + 1] = part
+			end
+		end
+		
+		selflib_exports_buf[#selflib_exports_buf+1] = [=[
+
+]]
+
+return ffi.C
+
+]=]
+		
+		resources:add('LUA', 'RADISH.MSWINDOWS.EXPORTS', table.concat(selflib_exports_buf))
 
 		resources:commit()
 		winfiles.copy(self.path, out_path)

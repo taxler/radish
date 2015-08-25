@@ -102,3 +102,44 @@ int radish_load_init_script(lua_State *L, const wchar_t* name) {
 	lua_remove(L, -2);
 	return result;
 }
+
+int radish_resource_module_loader(lua_State *L) {
+	HRSRC hrsrc;
+	HGLOBAL not_hglobal;
+	LPVOID data;
+	wchar_t* wide_name;
+	lua_pushvalue(L, 1);
+	wide_name = radish_to_wstring(L, -1);
+	if ((hrsrc = FindResourceW(NULL, wide_name, L"LUA")) == NULL) {
+		lua_pushliteral(L, "module resource not found: ");
+		lua_pushvalue(L, 1);
+		lua_concat(L, 2);
+		return 1;
+	}
+	if ((not_hglobal = LoadResource(NULL, hrsrc)) == NULL) {
+		lua_pushliteral(L, "unable to load module resource: ");
+		lua_pushvalue(L, 1);
+		lua_concat(L, 2);
+		return 1;
+	}
+	if ((data = LockResource(not_hglobal)) == NULL) {
+		lua_pushliteral(L, "unable to lock module resource: ");
+		lua_pushvalue(L, 1);
+		lua_concat(L, 2);
+		return 1;
+	}
+	lua_pushliteral(L, "=");
+	lua_pushvalue(L, 1);
+	lua_concat(L, 2);
+	if (0 != luaL_loadbuffer(L, (const char*)data, SizeofResource(NULL, hrsrc), lua_tostring(L, -1)))
+	{
+		return lua_error(L);
+	}
+	return 1;
+}
+
+void radish_add_resource_module_loader(lua_State *L) {
+	luaL_loadstring(L, "table.insert(package.loaders, 1, (...))");
+	lua_pushcfunction(L, radish_resource_module_loader);
+	lua_call(L, 1, 0);
+}

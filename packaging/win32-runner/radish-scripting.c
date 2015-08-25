@@ -120,6 +120,8 @@ VOID CALLBACK radish_script_fiber_proc(PVOID lpParameter) {
 
 	luaL_openlibs(L);
 
+	radish_add_resource_module_loader(L);
+
 	lua_pushcfunction(L, radish_formulate_error_message);
 	errfunc_i = lua_gettop(L);
 

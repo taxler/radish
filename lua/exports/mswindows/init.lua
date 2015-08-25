@@ -1,6 +1,7 @@
 
 local ffi = require 'ffi'
 require 'exports.mswindows.handles'
+require 'exports.typedef.bool32'
 
 if ffi.os ~= 'Windows' then
 	return false
@@ -13,6 +14,19 @@ ffi.cdef [[
 
 	MODULE* LoadLibraryW(const wchar_t* path);
 	bool32 FreeLibrary(MODULE*);
+
+	typedef struct POINT {
+		int32_t x, y;
+	} POINT;
+
+	typedef struct MSG {
+		void*     hwnd;
+		uint32_t  message;
+		uintptr_t wParam;
+		intptr_t  lParam;
+		uint32_t  time;
+		POINT     pt;
+	} MSG;
 
 ]]
 
