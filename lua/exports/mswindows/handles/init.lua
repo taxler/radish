@@ -8,6 +8,7 @@ ffi.cdef [[
 
 	typedef struct MODULE MODULE;
 	typedef struct RESOURCE RESOURCE;
+	typedef struct MICROSOFT_WINDOW MICROSOFT_WINDOW;
 
 ]]
 
