@@ -15,7 +15,7 @@
 cl /nologo /c /O2 /W3 /D_CRT_SECURE_NO_DEPRECATE radish-*.c
 @if errorlevel 1 goto :BAD
 
-link /def:exports.def /nologo /out:..\radish-runner.exe /subsystem:windows radish-*.obj user32.lib gdi32.lib version.lib lua51.lib
+link /def:exports.def /nologo /out:radish-runner.exe /subsystem:windows radish-*.obj user32.lib gdi32.lib version.lib lua51.lib
 @if errorlevel 1 goto :BAD
 
 @del *.obj

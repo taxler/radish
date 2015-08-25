@@ -7,7 +7,7 @@ local ffi = require 'ffi'
 local TITLE = 'Pumpkins for Everyone'
 
 
-local in_path = 'packaging/radish-runner.exe'
+local in_path = 'packaging/win32-runner/radish-runner.exe'
 local temp_path = 'packaging/temp_output.exe'
 local out_path = string.format('%s.exe', TITLE)
 

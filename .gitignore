@@ -2,3 +2,5 @@ universe
 /*.exe
 /*.dll
 /packaging/temp_output.exe
+/packaging/win32-runner/radish-runner.exp
+/packaging/win32-runner/radish-runner.lib
