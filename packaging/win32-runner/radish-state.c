@@ -45,16 +45,46 @@ void radish_wait_message(radish_state* state) {
 	}
 }
 
-BOOL radish_handle_script_response(radish_state* radish) {
+BOOL radish_script_step(radish_state* radish) {
+	if (radish->script_fiber == NULL) {
+		return FALSE;
+	}
+	SwitchToFiber(radish->script_fiber);
 	switch (radish->msg.message) {
 		case WMRADISH_TERMINATED:
-			if (radish->msg.lParam != 0) {
-				wchar_t* message = (wchar_t*)radish->msg.lParam;
-				// TODO: use main hwnd when it exists
-				MessageBoxW(NULL, message, radish_get_title(), MB_OK | MB_ICONERROR);
-				free(message);
-			}
+			DeleteFiber(radish->script_fiber);
+			radish->script_fiber = NULL;
 			return FALSE;
 	}
 	return TRUE;
+}
+
+void radish_set_error_wide(radish_state* radish, const wchar_t* wstr) {
+	size_t len;
+	if (radish->error != NULL) {
+		free(radish->error);
+	}
+	if (wstr == NULL) {
+		radish->error = NULL;
+		return;
+	}
+	len = wcslen(wstr);
+	radish->error = (wchar_t*)malloc(sizeof(wchar_t) * (len + 1));
+	wcsncpy(radish->error, wstr, len);
+	radish->error[len] = 0;
+}
+
+void radish_set_error_utf8(radish_state* radish, const char* utf8) {
+	size_t len;
+	if (radish->error != NULL) {
+		free(radish->error);
+	}
+	if (utf8 == NULL) {
+		radish->error = NULL;
+		return;
+	}
+	len = MultiByteToWideChar(65001, 0, utf8, -1, NULL, 0);
+	radish->error = (wchar_t*)malloc(sizeof(wchar_t) * (len + 1));
+	MultiByteToWideChar(65001, 0, utf8, -1, radish->error, len);
+	radish->error[len] = 0;
 }

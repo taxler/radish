@@ -21,14 +21,18 @@ int radish_error(lua_State *L) {
 	lua_getfield(L, LUA_REGISTRYINDEX, "radish_state*");
 	radish = (radish_state*)lua_touserdata(L, -1);
 	lua_pop(L, 1);
-	if (radish && radish->main_fiber != NULL) {
-		radish->msg.message = WMRADISH_TERMINATED;
-		radish->msg.lParam = (LPARAM)radish_copy_malloc_wide(L, -1);
-		lua_close(L);
-		SwitchToFiber(radish->main_fiber);
+	if (radish != NULL) {
+		radish_set_error_utf8(radish, lua_tostring(L, -1));
+	}
+	lua_close(L);
+	if (radish != NULL && radish->main_fiber != NULL) {
+		for (; ; ) {
+			radish->msg.message = WMRADISH_TERMINATED;
+			SwitchToFiber(radish->main_fiber);
+		}
 	}
 	// TODO: thread posts error message back to main thread
-	exit(EXIT_FAILURE);
+	ExitThread(EXIT_FAILURE);
 }
 
 static lua_State *getthread (lua_State *L, int *arg) {
@@ -140,7 +144,9 @@ VOID CALLBACK radish_script_fiber_proc(PVOID lpParameter) {
 	}
 
 	lua_close(L);
-	radish->msg.message = WMRADISH_TERMINATED;
-	radish->msg.lParam = 0;
-	SwitchToFiber(radish->main_fiber);
+
+	for (; ; ) {
+		radish->msg.message = WMRADISH_TERMINATED;
+		SwitchToFiber(radish->main_fiber);
+	}
 }
