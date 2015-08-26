@@ -13,6 +13,7 @@ ffi.cdef [[
 		MF_MENUBARBREAK = 0x020,
 		MF_MENUBREAK    = 0x040,
 		MF_OWNERDRAW    = 0x100,
+		MF_BYPOSITION   = 0x400, MF_BYCOMMAND  = 0,
 		MF_SEPARATOR    = 0x800
 	};
 
@@ -25,6 +26,11 @@ ffi.cdef [[
 		uint32_t flags,
 		uintptr_t item_id_or_submenu_handle,
 		const wchar_t* text_or_other);
+
+	bool32 EnableMenuItem(
+		WINDOWS_MENU*,
+		uint32_t item_id,
+		uint32_t flags);
 
 ]]
 

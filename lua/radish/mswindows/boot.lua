@@ -19,6 +19,26 @@ local _print = print
 function print(...)
 	if mswin.AllocConsole() then
 		crt.freopen('CONOUT$', 'w', ffi.cast('FILE*', io.stdout))
+		local console_hwnd = mswin.GetConsoleWindow()
+		mswin.ShowWindow(console_hwnd, mswin.SW_HIDE)
+		mswin.SetWindowLongPtrW(
+			console_hwnd,
+			mswin.GWL_HWNDPARENT,
+			ffi.cast('intptr_t', selfstate.host_window.hwnd))
+		mswin.SetWindowLongPtrW(
+			console_hwnd,
+			mswin.GWL_EXSTYLE,
+			bit.bor( mswin.WS_EX_LAYERED ))
+		mswin.SetLayeredWindowAttributes(
+			console_hwnd,
+			0,
+			127,
+			mswin.LWA_ALPHA)
+		mswin.EnableMenuItem(
+			mswin.GetSystemMenu(console_hwnd, false),
+			mswin.SC_CLOSE,
+			bit.bor( winmenus.MF_BYCOMMAND, winmenus.MF_GRAYED, winmenus.MF_DISABLED ))
+		mswin.ShowWindow(console_hwnd, mswin.SW_SHOWNOACTIVATE)
 	end
 	print = _print
 	return _print(...)

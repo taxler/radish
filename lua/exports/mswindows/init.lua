@@ -181,11 +181,141 @@ ffi.cdef [[
 	};
 
 	bool32 AllocConsole();
+	MICROSOFT_WINDOW* GetConsoleWindow();
+
+	enum {
+		GWLP_WNDPROC   = -4,
+		GWLP_HINSTANCE = -6,
+		GWL_HWNDPARENT = -8,
+		GWLP_ID        = -12, // cannot be top level window
+		GWL_STYLE      = -16,
+		GWL_EXSTYLE    = -20,
+		GWLP_USERDATA  = -21
+	};
+
+	enum {
+		WS_TILED        = 0x00000000,
+		WS_OVERLAPPED   = 0x00000000,
+		WS_MAXIMIZEBOX  = 0x00010000,
+		WS_TABSTOP      = 0x00010000,
+		WS_GROUP        = 0x00020000,
+		WS_MINIMIZEBOX  = 0x00020000,
+		WS_SIZEBOX      = 0x00040000,
+		WS_THICKFRAME   = 0x00040000,
+		WS_SYSMENU      = 0x00080000,
+		WS_HSCROLL      = 0x00100000,
+		WS_VSCROLL      = 0x00200000,
+		WS_DLGFRAME     = 0x00400000,
+		WS_BORDER       = 0x00800000,
+		WS_CAPTION      = 0x00C00000,
+		WS_MAXIMIZE     = 0x01000000,
+		WS_CLIPCHILDREN = 0x02000000,
+		WS_CLIPSIBLINGS = 0x04000000,
+		WS_DISABLED     = 0x08000000,
+		WS_VISIBLE      = 0x10000000,
+		WS_MINIMIZE     = 0x20000000,
+		WS_ICONIC       = WS_MINIMIZE,
+		WS_CHILD        = 0x40000000,
+		WS_POPUP        = 0x80000000,
+		WS_CHILDWINDOW  = WS_CHILD,
+
+		WS_OVERLAPPEDWINDOW
+			= WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
+		WS_TILEDWINDOW = WS_OVERLAPPEDWINDOW,
+		WS_POPUPWINDOW = WS_POPUP | WS_BORDER | WS_SYSMENU
+	};
+
+	enum {
+		WS_EX_DLGMODALFRAME       = 0x00000001,
+		WS_EX_NOPARENTNOTIFY      = 0x00000004,
+		WS_EX_TOPMOST             = 0x00000008,
+		WS_EX_ACCEPTFILES         = 0x00000010,
+		WS_EX_TRANSPARENT         = 0x00000020,
+		WS_EX_MDICHILD            = 0x00000040,
+		WS_EX_TOOLWINDOW          = 0x00000080,
+		WS_EX_WINDOWEDGE          = 0x00000100,
+		WS_EX_CLIENTEDGE          = 0x00000200,
+		WS_EX_CONTEXTHELP         = 0x00000400,
+		WS_EX_RIGHT               = 0x00001000, WS_EX_LEFT           = 0x00000000,
+		WS_EX_RTLREADING          = 0x00002000, WS_EX_LTRREADING     = 0x00000000,
+		WS_EX_LEFTSCROLLBAR       = 0x00004000, WS_EX_RIGHTSCROLLBAR = 0x00000000,
+		WS_EX_CONTROLPARENT       = 0x00010000,
+		WS_EX_STATICEDGE          = 0x00020000,
+		WS_EX_APPWINDOW           = 0x00040000,
+		WS_EX_LAYERED             = 0x00080000,
+		WS_EX_NOINHERITLAYOUT     = 0x00100000,
+		WS_EX_NOREDIRECTIONBITMAP = 0x00200000,
+		WS_EX_LAYOUTRTL           = 0x00400000,
+		WS_EX_COMPOSITED          = 0x02000000,
+		WS_EX_NOACTIVATE          = 0x08000000,
+		WS_EX_OVERLAPPEDWINDOW    = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE,
+		WS_EX_PALETTEWINDOW       = WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST
+	};
 
 	bool32 PostMessageW(MICROSOFT_WINDOW*, uint32_t message, uintptr_t wparam, intptr_t lparam);
 	void PostQuitMessage(int exit_code);
 
+	enum {
+		LWA_COLORKEY = 1,
+		LWA_ALPHA = 2
+	};
+
+	bool32 SetLayeredWindowAttributes(MICROSOFT_WINDOW*, uint32_t color_key, uint8_t alpha, uint32_t flags);
+
+	enum {
+		SW_HIDE = 0,
+		SW_SHOWNORMAL = 1,
+		SW_SHOWMINIMIZED = 2,
+		SW_SHOWMAXIMIZED = 3,
+		SW_MAXIMIZE = SW_SHOWMAXIMIZED,
+		SW_SHOWNOACTIVATE = 4,
+		SW_SHOW = 5,
+		SW_MINIMIZE = 6,
+		SW_SHOWMINNOACTIVE = 7,
+		SW_SHOWNA = 8,
+		SW_RESTORE = 9,
+		SW_SHOWDEFAULT = 10,
+		SW_FORCEMINIMIZE = 11
+	};
+
+	bool32 ShowWindow(MICROSOFT_WINDOW*, int);
+
+	MICROSOFT_WINDOW* SetParent(MICROSOFT_WINDOW* child, MICROSOFT_WINDOW* new_parent);
+
+	enum {
+		SCF_ISSECURE    =      1, // flag: is the screen saver secure?
+
+		SC_CLOSE        = 0xF060,
+		SC_CONTEXTHELP  = 0xF180, // ? cursor, clicking control posts WM_HELP
+		SC_DEFAULT      = 0xF160,
+		SC_HOTKEY       = 0xF150, // lparam: window to activate
+		SC_HSCROLL      = 0xF080,
+		SC_KEYMENU      = 0xF100,
+		SC_MAXIMIZE     = 0xF030,
+		SC_MINIMIZE     = 0xF020,
+		SC_MONITORPOWER = 0xF170, // lparam: -1 (powering on), 1 (low power), 2 (being shut off)
+		SC_MOUSEMENU    = 0xF090,
+		SC_MOVE         = 0xF010,
+		SC_NEXTWINDOW   = 0xF040,
+		SC_PREVWINDOW   = 0xF050,
+		SC_RESTORE      = 0xF120,
+		SC_SCREENSAVE   = 0xF140,
+		SC_SIZE	        = 0xF000,
+		SC_TASKLIST     = 0xF130,
+		SC_VSCROLL      = 0xF070
+	};
+
 ]]
+
+if ffi.abi '64bit' then
+	ffi.cdef [[
+		intptr_t SetWindowLongPtrW(MICROSOFT_WINDOW*, int index, intptr_t new_value);
+	]]
+else
+	ffi.cdef [[
+		intptr_t SetWindowLongPtrW(MICROSOFT_WINDOW*, int index, intptr_t new_value) __asm__("SetWindowLongW");
+	]]
+end
 
 -- ffi.C includes kernel32, user32, gdi32
 return ffi.C
