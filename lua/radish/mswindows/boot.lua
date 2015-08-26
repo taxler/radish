@@ -2,8 +2,10 @@
 local ffi = require 'ffi'
 local crt = require 'exports.crt'
 local mswin = require 'exports.mswindows'
-local selflib = require 'radish.mswindows.exports'
 local winstr = require 'exports.mswindows.strings'
+local selflib = require 'radish.mswindows.exports'
+local prompt = require 'radish.mswindows.prompt'
+local on_host_events = require 'radish.mswindows.on_host_events'
 
 local boot = {}
 
@@ -33,78 +35,32 @@ local function each_event(with_windows)
 	end
 end
 
-local dialog_responders = {}
-
-local function alert(msg, responder)
-	local text = winstr.wide(msg)
-	local id
-	if responder == nil then
-		id = 0
-	else
-		id = #dialog_responders + 1
-		dialog_responders[id] = responder
-	end
-	local alert = ffi.new('radish_dialog', {
-		type = selflib.RADISH_DIALOG_ALERT;
-		alert = {
-			text = text;
-		};
-		id = id;
-		harsh = true;
-	})
-	selflib.radish_request_dialog(selfstate, alert)
-end
-
-local function confirm(msg, responder, can_cancel)
-	local text = winstr.wide(msg)
-	local id
-	if responder == nil then
-		id = 0
-	else
-		id = #dialog_responders + 1
-		dialog_responders[id] = responder
-	end
-	local dialog = ffi.new('radish_dialog', {
-		type = selflib.RADISH_DIALOG_CONFIRM;
-		confirm = {
-			text = text;
-			can_cancel = can_cancel;
-		};
-		id = id;
-	})
-	selflib.radish_request_dialog(selfstate, dialog)
+on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
+	prompt.confirm("Hello World?", function(response)
+		if response == true then
+			prompt.alert "Clicked Yes"
+		elseif response == false then
+			prompt.alert "Clicked No"
+		elseif response == nil then
+			prompt.alert "Clicked Cancel"
+		end
+	end, true)
 end
 
 function boot.main_loop()
 	for hwnd, message, wparam, lparam in each_event(true) do
-		if message == mswin.WM_KEYDOWN then
-			confirm("Hello World?", function(response)
-				if response == true then
-					print "Clicked Yes"
-				elseif response == false then
-					print "Clicked No"
-				elseif response == nil then
-					print "Clicked Cancel"
-				end
-			end, true)
-		elseif message == selflib.WMRADISH_DIALOG_RESPONSE then
-			local dialog = ffi.cast('radish_dialog*', lparam)
-			local id = dialog.id
-			if id ~= nil then
-				local responder = dialog_responders[id]
-				dialog_responders[id] = nil
-				if responder ~= nil then
-					if dialog.type == selflib.RADISH_DIALOG_CONFIRM then
-						if dialog.confirm.response == string.byte('y') then
-							responder(true)
-						elseif dialog.confirm.response == string.byte('n') then
-							responder(false)
-						else
-							responder(nil)
-						end
-					else
-						responder()
-					end
+		local handler
+		if hwnd == selfstate.host_window.hwnd then
+			handler = on_host_events[message]
+		end
+		if handler ~= nil then
+			local result = handler(hwnd, message, wparam, lparam)
+			if result ~= 'default' then
+				selfstate.msg.message = selflib.WMRADISH_HANDLED
+				if type(result) == 'boolean' then
+					selfstate.msg.lParam = result and 1 or 0
+				else
+					selfstate.msg.lParam = tonumber(result) or 0
 				end
 			end
 		end
