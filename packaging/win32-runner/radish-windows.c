@@ -122,6 +122,14 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 				0,
 				lparam);
 			return 0;
+		case WMRADISH_DESTROY_WINDOW_REQUEST:
+			if (lparam != 0) {
+				DestroyWindow((HWND)lparam);
+			}
+			else {
+				DestroyWindow(hwnd);
+			}
+			return 0;
 		default:
 			return DefWindowProcW(hwnd, message, wparam, lparam);
 	}

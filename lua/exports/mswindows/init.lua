@@ -176,6 +176,7 @@ ffi.cdef [[
 
 	bool32 AllocConsole();
 
+	bool32 PostMessageW(MICROSOFT_WINDOW*, uint32_t message, uintptr_t wparam, intptr_t lparam);
 	void PostQuitMessage(int exit_code);
 
 ]]

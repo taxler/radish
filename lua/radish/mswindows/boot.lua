@@ -36,6 +36,22 @@ local function each_event(with_windows)
 	end
 end
 
+on_host_events[mswin.WM_CLOSE] = function(hwnd, message, wparam, lparam)
+	prompt.confirm('Are you sure you want to quit?', function(response)
+		if response == true then
+			mswin.PostMessageW(
+				selfstate.host_window.hwnd,
+				selflib.WMRADISH_DESTROY_WINDOW_REQUEST,
+				0,
+				0)
+		end
+	end)
+end
+
+on_host_events[mswin.WM_DESTROY] = function(hwnd, message, wparam, lparam)
+	mswin.PostQuitMessage(0)
+end
+
 on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
 	prompt.confirm("Hello World?", function(response)
 		if response == true then
