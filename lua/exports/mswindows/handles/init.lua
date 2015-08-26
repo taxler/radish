@@ -9,6 +9,8 @@ ffi.cdef [[
 	typedef struct MODULE MODULE;
 	typedef struct RESOURCE RESOURCE;
 	typedef struct MICROSOFT_WINDOW MICROSOFT_WINDOW;
+	typedef struct ACCELERATOR_TABLE ACCELERATOR_TABLE;
+	typedef struct WINDOWS_MENU WINDOWS_MENU;
 
 ]]
 

@@ -160,6 +160,12 @@ ffi.cdef [[
 		                              // lparam bit 24: set if extended key (right alt/ctrl)
 		                              // lparam bit 30: set if key previously down
 		MN_GETHMENU         = 0x01E1, // ret: hmenu
+		WM_SYSCOMMAND       = 0x0112, // wparam: SC_(...) command id
+		                              // lparam if using a mnemonic: 0
+		                              // lparam if using a system accelerator: -1
+		                              // otherwise:
+		                              //   lparam << 16 >> 16: x position
+		                              //   lparam       >> 16: y position
 		WM_SIZING           = 0x0214, // wparam: WMSZ_ constant, edge being sized
 		                              // lparam: RECT*
 		                              // ret: boolean (handled)

@@ -23,12 +23,18 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, char* command_li
 				radish->error = L"GetMessage error";
 				break;
 			}
-			TranslateMessage(&radish->msg);
 			if (radish->msg.hwnd == NULL) {
 				radish_script_step(radish);
 			}
 			else {
-				DispatchMessageW(&radish->msg);
+                if (radish->accelerator_table != NULL && TranslateAccelerator(
+                		radish->msg.hwnd, radish->accelerator_table, &radish->msg)) {
+                    // don't TranslateMessage
+                }
+                else {
+					TranslateMessage(&radish->msg);
+					DispatchMessageW(&radish->msg);
+				}
 			}
 		}
 	}

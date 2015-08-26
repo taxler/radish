@@ -1,8 +1,11 @@
 
+local bit = require 'bit'
 local ffi = require 'ffi'
 local crt = require 'exports.crt'
 local mswin = require 'exports.mswindows'
+local winkeys = require 'exports.mswindows.keys'
 local winstr = require 'exports.mswindows.strings'
+local winmenus = require 'exports.mswindows.menus'
 local selflib = require 'radish.mswindows.exports'
 local prompt = require 'radish.mswindows.prompt'
 local on_host_events = require 'radish.mswindows.on_host_events'
@@ -62,6 +65,30 @@ on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
 			prompt.alert "Clicked Cancel"
 		end
 	end, true)
+end
+
+local accelerator_keys = {}
+accelerator_keys[#accelerator_keys + 1] = {
+	fVirt = bit.bor( winkeys.FVIRTKEY, winkeys.FALT );
+	key = winkeys.VK_RETURN;
+	cmd = selflib.SCRADISH_TOGGLE_FULLSCREEN;
+}
+accelerator_keys[#accelerator_keys + 1] = {
+	fVirt = winkeys.FVIRTKEY;
+	key = winkeys.VK_F11;
+	cmd = selflib.SCRADISH_TOGGLE_FULLSCREEN;
+}
+
+selfstate.accelerator_table = winkeys.CreateAcceleratorTableW(
+	ffi.new('ACCEL[' .. #accelerator_keys .. ']', accelerator_keys),
+	#accelerator_keys)
+
+on_host_events[mswin.WM_CREATE] = function(hwnd, message, wparam, lparam)
+	local system_menu = winmenus.GetSystemMenu(hwnd, false)
+	winmenus.AppendMenuW(system_menu, winmenus.MF_SEPARATOR, 0, nil)
+	winmenus.AppendMenuW(system_menu, winmenus.MF_STRING,
+		selflib.SCRADISH_TOGGLE_FULLSCREEN,
+		winstr.wide 'Toggle Fullscreen\tAlt+Enter')
 end
 
 function boot.main_loop()

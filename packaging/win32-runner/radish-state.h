@@ -5,6 +5,7 @@
 #define RADISH_STATE_DOT_H
 
 #define MICROSOFT_WINDOW void
+#define ACCELERATOR_TABLE void
 
 #define RADISH_HOST_WINDOW_CLASS_NAME L"RadishHost"
 
@@ -24,7 +25,17 @@ enum {
 	WMRADISH_HANDLED,
 	WMRADISH_DIALOG_REQUEST,
 	WMRADISH_DIALOG_RESPONSE,
-	WMRADISH_DESTROY_WINDOW_REQUEST
+	WMRADISH_DESTROY_WINDOW_REQUEST,
+	WMRADISH_TOGGLE_FULLSCREEN,
+	WMRADISH_ENTER_FULLSCREEN,
+	WMRADISH_ENTERED_FULLSCREEN,
+	WMRADISH_LEAVE_FULLSCREEN,
+	WMRADISH_LEFT_FULLSCREEN
+};
+
+enum {
+	SCSPACE_RADISH = 0x4000, /* unassigned syscommand region: 0x0010 -> 0xEFFF */
+	SCRADISH_TOGGLE_FULLSCREEN = SCSPACE_RADISH
 };
 
 typedef struct radish_state {
@@ -34,6 +45,7 @@ typedef struct radish_state {
 	void* script_fiber;
 	radish_window* host_window;
 	wchar_t* error;
+	ACCELERATOR_TABLE* accelerator_table;
 } radish_state;
 
 radish_state* radish_get_state();
@@ -43,6 +55,7 @@ void radish_wait_message(radish_state*);
 //@@END:EXPORTS@@
 
 #undef MICROSOFT_WINDOW
+#undef ACCELERATOR_TABLE
 
 void radish_init_for_states();
 radish_state* radish_create_state(const wchar_t* init_script_name);

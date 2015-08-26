@@ -82,7 +82,6 @@ BOOL radish_is_host_hwnd(radish_state* radish, HWND hwnd) {
 }
 
 LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
-	BOOL continuing_script;
 	radish_state* radish = main_radish; // TODO: Use GetWindowLongPtr on hwnd?
 	// preliminary tasks
 	switch(message) {
@@ -95,7 +94,7 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	radish->msg.message = message;
 	radish->msg.wParam = wparam;
 	radish->msg.lParam = lparam;
-	continuing_script = radish_script_step(radish);
+	radish_script_step(radish);
 	// do things that always need to be done, regardless of what Lua wants
 	switch(message) {
 		case WM_DESTROY:
@@ -130,6 +129,46 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 				DestroyWindow(hwnd);
 			}
 			return 0;
+		case WMRADISH_TOGGLE_FULLSCREEN:
+            if (GetWindowLongPtr(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST) {
+				SendMessage(hwnd, WMRADISH_LEAVE_FULLSCREEN, 0, 0);
+			}
+			else {
+				SendMessage(hwnd, WMRADISH_ENTER_FULLSCREEN, 0, 0);
+			}
+			return 0;
+		case WMRADISH_ENTER_FULLSCREEN:
+            SetWindowLongPtr(hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_TOPMOST);
+            SetWindowLongPtr(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+            SetWindowPos(hwnd,
+                HWND_TOPMOST,
+                0, 0,
+                GetSystemMetrics(SM_CXFULLSCREEN), GetSystemMetrics(SM_CYFULLSCREEN),
+                SWP_SHOWWINDOW);
+            ShowWindow(hwnd, SW_MAXIMIZE);
+			SendMessage(hwnd, WMRADISH_ENTERED_FULLSCREEN, 0, 0);
+			return 0;
+		case WMRADISH_LEAVE_FULLSCREEN:
+            SetWindowLongPtr(hwnd, GWL_EXSTYLE, WS_EX_LEFT);
+            SetWindowLongPtr(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+            SetWindowPos(hwnd,
+                HWND_NOTOPMOST,
+                0, 0,
+                0, 0,
+                SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+			SendMessage(hwnd, WMRADISH_LEFT_FULLSCREEN, 0, 0);
+			return 0;
+		case WMRADISH_ENTERED_FULLSCREEN:
+		case WMRADISH_LEFT_FULLSCREEN:
+			return 0;
+		case WM_SYSCOMMAND:
+			switch (wparam & 0xfff0) {
+				case SCRADISH_TOGGLE_FULLSCREEN:
+					SendMessage(hwnd, WMRADISH_TOGGLE_FULLSCREEN, 0, 0);
+					return 0;
+				default:
+					return DefWindowProcW(hwnd, message, wparam, lparam);
+			}
 		default:
 			return DefWindowProcW(hwnd, message, wparam, lparam);
 	}
