@@ -8,6 +8,9 @@ radish_state* main_radish = NULL;
 
 LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message_id, WPARAM wparam, LPARAM lparam);
 
+#define HOST_EXTRACOUNT 1
+#define HOSTEXTRA_PLACEMENT 0
+
 void radish_init_host_window(radish_state* radish, radish_window* window) {
     HMODULE hmodule = GetModuleHandle(NULL);
 
@@ -18,7 +21,7 @@ void radish_init_host_window(radish_state* radish, radish_window* window) {
 	window->class_info.style = 0;
 	window->class_info.lpfnWndProc = radish_window_proc;
     window->class_info.cbClsExtra = 0;
-    window->class_info.cbWndExtra = 0;
+    window->class_info.cbWndExtra = sizeof(LONG_PTR) * HOST_EXTRACOUNT;
     window->class_info.hInstance = hmodule;
     window->class_info.hIcon = LoadIcon(hmodule, MAKEINTRESOURCE(32));
     if (window->class_info.hIcon == NULL) {
@@ -81,6 +84,18 @@ BOOL radish_is_host_hwnd(radish_state* radish, HWND hwnd) {
 	return radish != NULL && radish->host_window != NULL && radish->host_window->hwnd == hwnd;
 }
 
+WINDOWPLACEMENT* get_window_placement(HWND hwnd) {
+	WINDOWPLACEMENT* placement = (WINDOWPLACEMENT*)malloc(sizeof(WINDOWPLACEMENT));
+	placement->length = sizeof(WINDOWPLACEMENT);
+	GetWindowPlacement(hwnd, placement);
+	return placement;
+}
+
+void free_extra_ptr(HWND hwnd, int index) {
+	free((void*)GetWindowLongPtr(hwnd, index));
+	SetWindowLongPtr(hwnd, index, 0);
+}
+
 LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
 	radish_state* radish = main_radish; // TODO: Use GetWindowLongPtr on hwnd?
 	// preliminary tasks
@@ -138,13 +153,14 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 			}
 			return 0;
 		case WMRADISH_ENTER_FULLSCREEN:
+            SetWindowLongPtr(hwnd, HOSTEXTRA_PLACEMENT, (LONG_PTR)get_window_placement(hwnd));
             SetWindowLongPtr(hwnd, GWL_EXSTYLE, WS_EX_APPWINDOW | WS_EX_TOPMOST);
-            SetWindowLongPtr(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+            SetWindowLongPtr(hwnd, GWL_STYLE, WS_POPUP);
             SetWindowPos(hwnd,
                 HWND_TOPMOST,
                 0, 0,
                 GetSystemMetrics(SM_CXFULLSCREEN), GetSystemMetrics(SM_CYFULLSCREEN),
-                SWP_SHOWWINDOW);
+                0);
             ShowWindow(hwnd, SW_MAXIMIZE);
 			SendMessage(hwnd, WMRADISH_ENTERED_FULLSCREEN, 0, 0);
 			return 0;
@@ -156,6 +172,8 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
                 0, 0,
                 0, 0,
                 SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+            SetWindowPlacement(hwnd, (WINDOWPLACEMENT*)GetWindowLongPtr(hwnd, HOSTEXTRA_PLACEMENT));
+            free_extra_ptr(hwnd, HOSTEXTRA_PLACEMENT);
 			SendMessage(hwnd, WMRADISH_LEFT_FULLSCREEN, 0, 0);
 			return 0;
 		case WMRADISH_ENTERED_FULLSCREEN:
