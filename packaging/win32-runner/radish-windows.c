@@ -103,6 +103,9 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 				radish->host_window->hwnd = NULL;
 			}
 			break;
+		case WMRADISH_DIALOG_RESPONSE:
+			radish_free_dialog(radish, (radish_dialog*)lparam);
+			return 0;
 	}
 	if (!continuing_script) {
 		PostQuitMessage(radish->error == NULL ? EXIT_SUCCESS : EXIT_FAILURE);
@@ -121,9 +124,6 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 				WMRADISH_DIALOG_RESPONSE,
 				0,
 				lparam);
-			return 0;
-		case WMRADISH_DIALOG_RESPONSE:
-			radish_free_dialog(radish, (radish_dialog*)lparam);
 			return 0;
 		default:
 			return DefWindowProcW(hwnd, message, wparam, lparam);
