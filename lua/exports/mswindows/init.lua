@@ -176,6 +176,8 @@ ffi.cdef [[
 
 	bool32 AllocConsole();
 
+	void PostQuitMessage(int exit_code);
+
 ]]
 
 -- ffi.C includes kernel32, user32, gdi32

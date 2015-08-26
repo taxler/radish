@@ -6,6 +6,7 @@ local winstr = require 'exports.mswindows.strings'
 local selflib = require 'radish.mswindows.exports'
 local prompt = require 'radish.mswindows.prompt'
 local on_host_events = require 'radish.mswindows.on_host_events'
+local on_other_events = require 'radish.mswindows.on_other_events'
 
 local boot = {}
 
@@ -24,8 +25,8 @@ local function each_event(with_windows)
 	if with_windows then
 		return function()
 			selflib.radish_wait_message(selfstate)
-			if selfstate.msg.message == mswin.WM_DESTROY
-			and selfstate.msg.hwnd == selfstate.host_window.hwnd then
+			-- break the loop on WM_QUIT
+			if selfstate.msg.message == mswin.WM_QUIT then
 				return
 			end
 			return selfstate.msg.hwnd, selfstate.msg.message, selfstate.msg.wParam, selfstate.msg.lParam
@@ -52,6 +53,8 @@ function boot.main_loop()
 		local handler
 		if hwnd == selfstate.host_window.hwnd then
 			handler = on_host_events[message]
+		else
+			handler = on_other_events[message]
 		end
 		if handler ~= nil then
 			local result = handler(hwnd, message, wparam, lparam)
