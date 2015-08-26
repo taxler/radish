@@ -105,6 +105,8 @@ void radish_request_dialog(radish_state* radish, radish_dialog* dialog) {
 				wcsncpy(dialog_copy->confirm.override_title, dialog->confirm.override_title, text_size);
 				dialog_copy->confirm.override_title[text_size] = 0;
 			}
+			dialog_copy->confirm.harsh = dialog->confirm.harsh;
+			dialog_copy->confirm.can_cancel = dialog->confirm.can_cancel;
 			break;
 	}
 	if (dialog_copy != NULL) {
