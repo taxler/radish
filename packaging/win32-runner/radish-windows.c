@@ -107,10 +107,7 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 			radish_free_dialog(radish, (radish_dialog*)lparam);
 			return 0;
 	}
-	if (!continuing_script) {
-		PostQuitMessage(radish->error == NULL ? EXIT_SUCCESS : EXIT_FAILURE);
-	}
-	else if (radish->msg.message == WMRADISH_HANDLED) {
+	if (radish->msg.message == WMRADISH_HANDLED) {
 		// Lua does not want the default action(s) to run,
 		// and has provided its own return code
 		return (LRESULT)radish->msg.lParam;

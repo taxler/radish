@@ -16,21 +16,20 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, char* command_li
 	radish_init_host_window(radish, &host_window);
 
 	if (radish_script_step(radish)) {
-		BOOL result;
 		radish_create_window(radish, &host_window);
-		while ((result = GetMessageW(&radish->msg, NULL, 0, 0)) != 0) {
-			if (result == -1) {
-				// GetMessage error
+		while (radish_script_running(radish)) {
+ 			BOOL result = GetMessageW(&radish->msg, NULL, 0, 0);
+ 			if (result == -1) {
+				radish->error = L"GetMessage error";
 				break;
 			}
 			TranslateMessage(&radish->msg);
-			DispatchMessageW(&radish->msg);
-		}
-		if (radish->script_fiber != NULL) {
-			do {
-				radish->msg.message = WMRADISH_TERMINATE;
+			if (radish->msg.hwnd == NULL) {
+				radish_script_step(radish);
 			}
-			while (radish_script_step(radish));
+			else {
+				DispatchMessageW(&radish->msg);
+			}
 		}
 	}
 

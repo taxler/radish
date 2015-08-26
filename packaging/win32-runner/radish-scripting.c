@@ -150,3 +150,7 @@ VOID CALLBACK radish_script_fiber_proc(PVOID lpParameter) {
 		SwitchToFiber(radish->main_fiber);
 	}
 }
+
+BOOL radish_script_running(radish_state* radish) {
+	return radish->script_fiber != NULL;
+}
