@@ -160,13 +160,29 @@ ffi.cdef [[
 
 ]=]}
 		
+		local parts = {}
+		local part_priority = {}
+
 		for type, header_name in winfiles.dir('packaging/win32-runner/radish-*.h') do
 			local f = assert(io.open('packaging/win32-runner/' .. header_name, 'rb'))
 			local data = f:read('*a')
 			f:close()
 			for part in data:gmatch('@+%s*BEGIN%s*:%s*EXPORTS%s*@+(.-)@+END%s*:%s*EXPORTS%s*@+') do
-				selflib_exports_buf[#selflib_exports_buf + 1] = part
+				local priority = 0
+				part = part:gsub('@+%s*ORDER%s*:%s*(%-?%d+)%s*@+', function(pri)
+					priority = tonumber(pri)
+				end)
+				parts[#parts + 1] = part
+				part_priority[part] = priority
 			end
+		end
+
+		table.sort(parts, function(a, b)
+			return part_priority[a] < part_priority[b]
+		end)
+
+		for i = 1, #parts do
+			selflib_exports_buf[#selflib_exports_buf+1] = parts[i]
 		end
 		
 		selflib_exports_buf[#selflib_exports_buf+1] = [=[

@@ -79,7 +79,7 @@ ffi.cdef [[
 		                              // wparam = 3: another window restored (for pop-up windows)
 		                              // wparam = 4: another window maximized (for pop-up windows)
 		                              // lparam << 16 >> 16: client width
-		                              // lparam       >> 16: client height	                              
+		                              // lparam       >> 16: client height
 		WM_ENABLE           = 0x000A, // wparam: boolean (not being disabled)
 		WM_SETTEXT          = 0x000C, // lparam: string
 		                              // ret if success: true
@@ -154,6 +154,11 @@ ffi.cdef [[
 		WM_NCACTIVATE       = 0x0086, // wparam: boolean (not being deactivated)
 		                              // lparam: [investigate?]
 		                              // ret: boolean (successful state change)
+		WM_KEYDOWN          = 0x0100, // wparam: virtual key code
+		                              // lparam bits 0-15: repeat count
+		                              // lparam bits 16-23: scan code
+		                              // lparam bit 24: set if extended key (right alt/ctrl)
+		                              // lparam bit 30: set if key previously down
 		MN_GETHMENU         = 0x01E1, // ret: hmenu
 		WM_SIZING           = 0x0214, // wparam: WMSZ_ constant, edge being sized
 		                              // lparam: RECT*

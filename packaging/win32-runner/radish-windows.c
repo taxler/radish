@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "radish-state.h"
 #include "radish-resources.h"
+#include "radish-dialog.h"
 
 radish_state* main_radish = NULL;
 
@@ -112,5 +113,19 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 		return (LRESULT)radish->msg.lParam;
 	}
 	// do the default thing
-	return DefWindowProcW(hwnd, message, wparam, lparam);
+	switch (message) {
+		case WMRADISH_DIALOG_REQUEST:
+			radish_do_dialog(radish, (radish_dialog*)lparam);
+			PostMessage(
+				radish->host_window == NULL ? NULL : radish->host_window->hwnd,
+				WMRADISH_DIALOG_RESPONSE,
+				0,
+				lparam);
+			return 0;
+		case WMRADISH_DIALOG_RESPONSE:
+			radish_free_dialog(radish, (radish_dialog*)lparam);
+			return 0;
+		default:
+			return DefWindowProcW(hwnd, message, wparam, lparam);
+	}
 }
