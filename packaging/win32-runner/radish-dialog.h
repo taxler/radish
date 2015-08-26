@@ -25,6 +25,7 @@ typedef struct radish_dialog {
 		struct {
 			wchar_t* text;
 			wchar_t* override_title;
+			bool32 harsh;
 			bool32 can_cancel;
 			char response; // 'y'/'n'/'x' for yes/no/cancel
 		} confirm;

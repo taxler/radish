@@ -21,7 +21,8 @@ void radish_do_dialog(radish_state* radish, radish_dialog* dialog) {
 				radish->host_window == NULL ? NULL : radish->host_window->hwnd,
 				dialog->confirm.text,
 				dialog->confirm.override_title == NULL ? radish_get_title() : dialog->confirm.override_title,
-				(dialog->confirm.can_cancel ? MB_YESNOCANCEL : MB_YESNO) | MB_ICONQUESTION);
+				(dialog->confirm.can_cancel ? MB_YESNOCANCEL : MB_YESNO)
+					| (dialog->alert.harsh ? MB_ICONWARNING : MB_ICONQUESTION));
 			switch (retcode) {
 				case IDYES:
 					dialog->confirm.response = 'y';

@@ -50,6 +50,7 @@ local function alert(msg, responder)
 			text = text;
 		};
 		id = id;
+		harsh = true;
 	})
 	selflib.radish_request_dialog(selfstate, alert)
 end
