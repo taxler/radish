@@ -44,21 +44,6 @@ function print(...)
 	return _print(...)
 end
 
-local function each_event(with_windows)
-	if with_windows then
-		return function()
-			selflib.radish_wait_message(selfstate)
-			-- break the loop on WM_QUIT
-			if selfstate.msg.message == mswin.WM_QUIT then
-				return
-			end
-			return selfstate.msg.hwnd, selfstate.msg.message, selfstate.msg.wParam, selfstate.msg.lParam
-		end
-	else
-		error 'TODO'
-	end
-end
-
 on_host_events[mswin.WM_CLOSE] = function(hwnd, message, wparam, lparam)
 	prompt.confirm('Are you sure you want to quit?', function(response)
 		if response == true then
@@ -73,6 +58,56 @@ end
 
 on_host_events[mswin.WM_DESTROY] = function(hwnd, message, wparam, lparam)
 	mswin.PostQuitMessage(0)
+end
+
+local test_thread_id = selflib.radish_create_thread(winstr.wide 'TEST_THREAD.LUA')
+local test_thread_ready = false
+
+on_other_events[selflib.WMRADISH_THREAD_TERMINATED] = function(hwnd, message, wparam, lparam)
+	if wparam == test_thread_id then
+		local dead_state = ffi.cast('radish_state*', lparam)
+		print('test thread terminated')
+		if dead_state.error ~= nil then
+			print('test thread error: ' .. winstr.utf8(dead_state.error))
+		end
+		test_thread_ready = false
+		test_thread_id = nil
+	else
+		print('thread terminated but not test thread? (expecting ' .. test_thread_id .. ' got ' .. wparam .. ')')
+	end
+end
+
+on_other_events[selflib.WMRADISH_THREAD_READY] = function(hwnd, message, wparam, lparam)
+	if wparam == test_thread_id then
+		print 'test thread ready!'
+		test_thread_ready = true
+	else
+		print('thread ready but not test thread? (expecting ' .. test_thread_id .. ' got ' .. wparam .. ')')
+	end
+end
+
+on_other_events[selflib.WMRADISH_THREAD_SEND_DATA] = function(hwnd, message, wparam, lparam)
+	if wparam == test_thread_id then
+		local buf = ffi.cast('radish_buffer*', lparam)
+		local data = ffi.string(buf.data, buf.length)
+		print('received message from test thread: ' .. string.format('%q', data))
+	else
+		print('received message but not from test thread? (expecting ' .. test_thread_id .. ' got ' .. wparam .. ')')
+	end
+end
+
+on_host_events[mswin.WM_LBUTTONDOWN] = function(hwnd, message, wparam, lparam)
+	if test_thread_ready then
+		local message = os.date()
+		print('sending test thread: ' .. message)
+		selflib.radish_send_thread(test_thread_id, message, #message)
+	end
+end
+
+on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
+	if test_thread_ready then
+		mswin.PostThreadMessageW(test_thread_id, mswin.WM_QUIT, 0, 0)
+	end
 end
 
 on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
@@ -111,8 +146,19 @@ on_host_events[mswin.WM_CREATE] = function(hwnd, message, wparam, lparam)
 		winstr.wide 'Toggle Fullscreen\tAlt+Enter')
 end
 
+local function each_event()
+	return function()
+		selflib.radish_wait_message(selfstate)
+		-- break the loop on WM_QUIT
+		if selfstate.msg.message == mswin.WM_QUIT then
+			return
+		end
+		return selfstate.msg.hwnd, selfstate.msg.message, selfstate.msg.wParam, selfstate.msg.lParam
+	end
+end
+
 function boot.main_loop()
-	for hwnd, message, wparam, lparam in each_event(true) do
+	for hwnd, message, wparam, lparam in each_event() do
 		local handler
 		if hwnd == selfstate.host_window.hwnd then
 			handler = on_host_events[message]

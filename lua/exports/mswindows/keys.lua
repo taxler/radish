@@ -156,6 +156,16 @@ ffi.cdef [[
 		VK_OEM_CLEAR
 	};
 
+	enum {
+		MK_LBUTTON  = 0x01,
+		MK_RBUTTON  = 0x02,
+		MK_SHIFT    = 0x04,
+		MK_CONTROL  = 0x08,
+		MK_MBUTTON  = 0x10,
+		MK_XBUTTON1 = 0x20,
+		MK_XBUTTON2 = 0x40
+	};
+
 	// accelerator tables
 
 	enum {

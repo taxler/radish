@@ -151,6 +151,14 @@ boot.main_loop()
 
 ]])
 
+		resources:add('INIT', 'TEST_THREAD.LUA', [[
+
+local thread = require 'radish.mswindows.test_thread'
+
+thread.main_loop()
+
+]])
+
 		local selflib_exports_buf = {[=[
 
 local ffi = require 'ffi'

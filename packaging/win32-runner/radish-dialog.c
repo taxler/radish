@@ -110,10 +110,19 @@ void radish_request_dialog(radish_state* radish, radish_dialog* dialog) {
 			break;
 	}
 	if (dialog_copy != NULL) {
-		PostMessage(
-			radish->host_window == NULL ? NULL : radish->host_window->hwnd,
-			WMRADISH_DIALOG_REQUEST,
-			0,
-			(LPARAM)(void*)dialog_copy);
+		if (radish->parent_thread_id != 0) {
+			PostThreadMessage(
+				radish->parent_thread_id,
+				WMRADISH_DIALOG_REQUEST,
+				GetCurrentThreadId(),
+				(LPARAM)(void*)dialog_copy);
+		}
+		else {
+			PostMessage(
+				NULL,
+				WMRADISH_DIALOG_REQUEST,
+				0,
+				(LPARAM)(void*)dialog_copy);
+		}
 	}
 }

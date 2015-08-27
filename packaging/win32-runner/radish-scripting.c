@@ -4,6 +4,7 @@
 #include "radish-state.h"
 #include "radish-resources.h"
 #include "radish-text.h"
+#include "radish-dialog.h"
 
 #include "lua.h"
 #include "lauxlib.h"
@@ -11,9 +12,23 @@
 #include "luaconf.h"
 
 VOID CALLBACK radish_script_fiber_proc(PVOID lpParameter);
+DWORD WINAPI radish_thread_proc(LPVOID lpParameter);
 
 void* radish_create_script_fiber(radish_state* radish) {
 	return CreateFiber(0, radish_script_fiber_proc, radish);
+}
+
+DWORD radish_create_thread(const wchar_t* init_script_name) {
+	DWORD new_thread_id;
+	radish_state* new_radish_state = (radish_state*)malloc(sizeof(radish_state));
+	size_t name_len = wcslen(init_script_name);
+	wchar_t* script_name_copy = (wchar_t*)malloc(sizeof(wchar_t) * (name_len + 1));
+	memcpy(script_name_copy, init_script_name, name_len * sizeof(wchar_t));
+	script_name_copy[name_len] = 0;
+	new_radish_state->init_script_name = script_name_copy;
+	new_radish_state->parent_thread_id = GetCurrentThreadId();
+	CreateThread(NULL, 0, radish_thread_proc, new_radish_state, 0, &new_thread_id);
+	return new_thread_id;
 }
 
 int radish_error(lua_State *L) {
@@ -153,4 +168,54 @@ VOID CALLBACK radish_script_fiber_proc(PVOID lpParameter) {
 
 BOOL radish_script_running(radish_state* radish) {
 	return radish->script_fiber != NULL;
+}
+
+DWORD WINAPI radish_thread_proc(LPVOID lpParameter) {
+	radish_state* radish = (radish_state*)lpParameter;
+	radish->main_fiber = ConvertThreadToFiber(NULL);
+	radish->script_fiber = radish_create_script_fiber(radish);
+	radish_set_state(radish);
+
+	if (radish_script_step(radish)) {
+		// force the creation of the message queue
+		PeekMessage(&radish->msg, NULL, WM_USER, WM_USER, PM_NOREMOVE);
+		// notify the parent thread that we are ready to receive events
+		PostThreadMessage(radish->parent_thread_id, WMRADISH_THREAD_READY, GetCurrentThreadId(), 0);
+		do {
+ 			BOOL result = GetMessageW(&radish->msg, NULL, 0, 0);
+ 			if (result == -1) {
+				radish->error = L"GetMessage error";
+				break;
+			}
+			else {
+				UINT message = radish->msg.message;
+				WPARAM wparam = radish->msg.wParam;
+				LPARAM lparam = radish->msg.lParam;
+				radish_script_step(radish);
+				switch (message) {
+					case WMRADISH_DIALOG_RESPONSE:
+						radish_free_dialog(radish, (radish_dialog*)lparam);
+						break;
+					case WMRADISH_THREAD_SEND_DATA:
+						radish_buffer_free((radish_buffer*)lparam);
+						break;
+				}
+			}
+		}
+		while (radish_script_running(radish));
+	}
+	PostThreadMessage(
+		radish->parent_thread_id,
+		WMRADISH_THREAD_TERMINATED,
+		GetCurrentThreadId(),
+		(LPARAM)radish);
+	return radish->error == NULL ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+BOOL radish_send_thread(UINT thread_id, const BYTE* data, size_t data_len) {
+	return PostThreadMessage(
+		thread_id,
+		WMRADISH_THREAD_SEND_DATA,
+		(WPARAM)GetCurrentThreadId(),
+		(LPARAM)radish_buffer_for_bytes(data, data_len));
 }

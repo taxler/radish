@@ -2,3 +2,9 @@ EXPORTS
 	radish_get_state
 	radish_wait_message
 	radish_request_dialog
+	radish_create_thread
+	radish_send_thread
+	radish_buffer_alloc
+	radish_buffer_free
+	radish_buffer_for_wstring
+	radish_buffer_for_bytes
