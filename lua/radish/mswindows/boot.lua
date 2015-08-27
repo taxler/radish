@@ -32,7 +32,7 @@ function print(...)
 		mswin.SetLayeredWindowAttributes(
 			console_hwnd,
 			0,
-			127,
+			180,
 			mswin.LWA_ALPHA)
 		mswin.EnableMenuItem(
 			mswin.GetSystemMenu(console_hwnd, false),
