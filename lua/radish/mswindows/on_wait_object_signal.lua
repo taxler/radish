@@ -61,4 +61,8 @@ on_other_events[selflib.WMRADISH_WAIT_OBJECT_SIGNALLED] = function(_, message, w
 	end
 end
 
+setmetatable(on_wait_object_signal, {
+	__call = on_wait_object_signal.add;
+})
+
 return on_wait_object_signal

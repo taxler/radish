@@ -45,7 +45,7 @@ do -- audio processing
 
 	fill_audio_buffer(false)
 
-	on_wait_object_signal:add(audio.event_handle, function()
+	on_wait_object_signal(audio.event_handle, function()
 		fill_audio_buffer(true)
 	end)
 end
