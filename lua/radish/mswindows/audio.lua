@@ -4,6 +4,7 @@ local com = require 'exports.mswindows.com'
 local coreaudio = require 'exports.mswindows.media.coreaudio'
 local mmd = require 'exports.mswindows.media.coreaudio.multimediadevice'
 local mswin = require 'exports.mswindows'
+local winstr = require 'exports.mswindows.strings'
 local ole32 = require 'exports.mswindows.automation'
 local winmedia = require 'exports.mswindows.media'
 local winchecks = require 'exports.mswindows.checks'
@@ -71,6 +72,18 @@ end))
 audio.render_client = assert(com.check_out('IAudioRenderClient*', function(out_render_client)
 	return audio.client:GetService(com.iidof 'IAudioRenderClient', ffi.cast('void**', out_render_client))
 end))
+
+do
+	local success, avrt = pcall( require, 'exports.mswindows.media.realtime' )
+	if success then
+		local out_index = ffi.new 'uint32_t[1]'
+		local handle = avrt.AvSetMmThreadCharacteristicsW(winstr.wide 'Audio', out_index)
+		if handle ~= nil then
+			audio.realtime_task_handle = handle
+			audio.realtime_task_index = out_index[0]
+		end
+	end
+end
 
 -- multimedia class scheduler: arvt.AvSetMmThreadCharacteristicsW("Audio", ...) ?
 
