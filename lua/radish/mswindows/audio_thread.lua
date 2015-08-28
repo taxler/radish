@@ -1,7 +1,7 @@
 
 local mswin = require 'exports.mswindows'
 local ffi = require 'ffi'
-local on_wait_object_signals = require 'radish.mswindows.on_wait_object_signals'
+local on_wait_object_signal = require 'radish.mswindows.on_wait_object_signal'
 local on_other_events = require 'radish.mswindows.on_other_events'
 local selflib = require 'radish.mswindows.exports'
 local selfstate = selflib.radish_get_state()
@@ -45,7 +45,7 @@ do -- audio processing
 
 	fill_audio_buffer(false)
 
-	on_wait_object_signals:add(audio.event_handle, function()
+	on_wait_object_signal:add(audio.event_handle, function()
 		fill_audio_buffer(true)
 	end)
 end
