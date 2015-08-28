@@ -127,6 +127,8 @@ int radish_formulate_error_message(lua_State *L) {
 	return 1;
 }
 
+extern int luaopen_lpeg(lua_State *L);
+
 VOID CALLBACK radish_script_fiber_proc(PVOID lpParameter) {
 	radish_state* radish = (radish_state*)lpParameter;
 	int errfunc_i;
@@ -139,6 +141,11 @@ VOID CALLBACK radish_script_fiber_proc(PVOID lpParameter) {
 	lua_atpanic(L, radish_error);
 
 	luaL_openlibs(L);
+
+	luaL_loadstring(L, "local name, loader = ...; package.preload[name] = loader");
+	lua_pushliteral(L, "lpeg");
+	lua_pushcfunction(L, luaopen_lpeg);
+	lua_call(L, 2, 0);
 
 	radish_add_resource_module_loader(L);
 
