@@ -47,7 +47,10 @@ enum {
 	WMRADISH_LEFT_FULLSCREEN,
 	WMRADISH_THREAD_READY,
 	WMRADISH_THREAD_SEND_DATA,
-	WMRADISH_THREAD_TERMINATED
+	WMRADISH_THREAD_TERMINATED,
+	WMRADISH_WAIT_OBJECT_SIGNALLED,
+	WMRADISH_MUTEX_ABANDONED,
+	WMRADISH_UPDATE
 };
 
 enum {
@@ -64,6 +67,8 @@ typedef struct radish_state {
 	wchar_t* error;
 	ACCELERATOR_TABLE* accelerator_table;
 	unsigned __int32 parent_thread_id;
+	void* wait_objects[MAXIMUM_WAIT_OBJECTS];
+	unsigned __int32 wait_object_count;
 } radish_state;
 
 radish_state* radish_get_state();

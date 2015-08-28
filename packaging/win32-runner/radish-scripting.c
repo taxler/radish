@@ -25,6 +25,7 @@ DWORD radish_create_thread(const wchar_t* init_script_name) {
 	wchar_t* script_name_copy = (wchar_t*)malloc(sizeof(wchar_t) * (name_len + 1));
 	memcpy(script_name_copy, init_script_name, name_len * sizeof(wchar_t));
 	script_name_copy[name_len] = 0;
+	memset(new_radish_state, 0, sizeof(radish_state));
 	new_radish_state->init_script_name = script_name_copy;
 	new_radish_state->parent_thread_id = GetCurrentThreadId();
 	CreateThread(NULL, 0, radish_thread_proc, new_radish_state, 0, &new_thread_id);
@@ -182,24 +183,54 @@ DWORD WINAPI radish_thread_proc(LPVOID lpParameter) {
 		// notify the parent thread that we are ready to receive events
 		PostThreadMessage(radish->parent_thread_id, WMRADISH_THREAD_READY, GetCurrentThreadId(), 0);
 		do {
- 			BOOL result = GetMessageW(&radish->msg, NULL, 0, 0);
- 			if (result == -1) {
-				radish->error = L"GetMessage error";
+
+			DWORD result = MsgWaitForMultipleObjects(
+				radish->wait_object_count,
+				radish->wait_objects,
+				FALSE,
+				INFINITE,
+				QS_ALLINPUT);
+			if (result == WAIT_OBJECT_0 + radish->wait_object_count) {
+				while (PeekMessage(&radish->msg, NULL, 0, 0, PM_REMOVE)) {
+					UINT message = radish->msg.message;
+					WPARAM wparam = radish->msg.wParam;
+					LPARAM lparam = radish->msg.lParam;
+					radish_script_step(radish);
+					switch (message) {
+						case WMRADISH_DIALOG_RESPONSE:
+							radish_free_dialog(radish, (radish_dialog*)lparam);
+							break;
+						case WMRADISH_THREAD_SEND_DATA:
+							radish_buffer_free((radish_buffer*)lparam);
+							break;
+					}
+				}
+			}
+			else if (result >= WAIT_OBJECT_0 && result < (WAIT_OBJECT_0 + radish->wait_object_count)) {
+				radish->msg.message = WMRADISH_WAIT_OBJECT_SIGNALLED;
+				radish->msg.hwnd = NULL;
+				radish->msg.lParam = (LPARAM)(result - WAIT_OBJECT_0);
+				radish->msg.wParam = (WPARAM)radish->wait_objects[radish->msg.lParam];
+				radish_script_step(radish);
+			}
+			else if (result >= WAIT_ABANDONED_0 && result < (WAIT_ABANDONED_0 + radish->wait_object_count)) {
+				radish->msg.message = WMRADISH_MUTEX_ABANDONED;
+				radish->msg.hwnd = NULL;
+				radish->msg.lParam = (LPARAM)(result - WAIT_ABANDONED_0);
+				radish->msg.wParam = (WPARAM)radish->wait_objects[radish->msg.lParam];
+				radish_script_step(radish);
+			}
+			else if (result == WAIT_FAILED) {
+				radish->error = L"MsgWaitForMultipleObjects Error";
 				break;
 			}
+			else if (result == WAIT_TIMEOUT) {
+				// should not be possible - we wait for infinite time!
+				// just ignore it...?
+			}
 			else {
-				UINT message = radish->msg.message;
-				WPARAM wparam = radish->msg.wParam;
-				LPARAM lparam = radish->msg.lParam;
-				radish_script_step(radish);
-				switch (message) {
-					case WMRADISH_DIALOG_RESPONSE:
-						radish_free_dialog(radish, (radish_dialog*)lparam);
-						break;
-					case WMRADISH_THREAD_SEND_DATA:
-						radish_buffer_free((radish_buffer*)lparam);
-						break;
-				}
+				radish->error = L"Unknown result from MsgWaitForMultipleObjects";
+				break;
 			}
 		}
 		while (radish_script_running(radish));

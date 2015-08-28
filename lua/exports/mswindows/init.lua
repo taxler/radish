@@ -466,6 +466,16 @@ ffi.cdef [[
 
 	uint32_t GetCurrentThreadId();
 
+	typedef struct SECURITY_ATTRIBUTES {
+		uint32_t nLength;
+		void*    lpSecurityDescriptor;
+		bool32   bInheritHandle;
+	} SECURITY_ATTRIBUTES;
+
+	void* CreateEventW(SECURITY_ATTRIBUTES*, bool32 manual_reset, bool32 initial_state, const wchar_t* name);
+
+	static const int MAXIMUM_WAIT_OBJECTS = 64;
+
 ]]
 
 if ffi.abi '64bit' then

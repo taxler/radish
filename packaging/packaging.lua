@@ -151,11 +151,11 @@ boot.main_loop()
 
 ]])
 
-		resources:add('INIT', 'TEST_THREAD.LUA', [[
+		resources:add('INIT', 'AUDIO_THREAD.LUA', [[
 
-local thread = require 'radish.mswindows.test_thread'
+local audio_thread = require 'radish.mswindows.audio_thread'
 
-thread.main_loop()
+audio_thread.main_loop()
 
 ]])
 

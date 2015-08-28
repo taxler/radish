@@ -10,6 +10,8 @@ ffi.cdef [[
 
 	FILE* freopen(const char* filename, const char* mode, FILE*);
 
+	int memcmp(const void* ptr1, const void* ptr2, size_t);
+
 ]]
 
 return ffi.C

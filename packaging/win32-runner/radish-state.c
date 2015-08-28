@@ -27,6 +27,7 @@ radish_state* radish_get_state() {
 	void* data = TlsGetValue(radish_state_tls);
 	if (data == NULL) {
 		data = malloc(sizeof(radish_state));
+		memset(data, 0, sizeof(radish_state));
 		TlsSetValue(radish_state_tls, data);
 	}
 	return (radish_state*)data;

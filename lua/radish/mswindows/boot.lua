@@ -60,53 +60,53 @@ on_host_events[mswin.WM_DESTROY] = function(hwnd, message, wparam, lparam)
 	mswin.PostQuitMessage(0)
 end
 
-local test_thread_id = selflib.radish_create_thread(winstr.wide 'TEST_THREAD.LUA')
-local test_thread_ready = false
+local audio_thread_id = selflib.radish_create_thread(winstr.wide 'AUDIO_THREAD.LUA')
+local audio_thread_ready = false
 
 on_other_events[selflib.WMRADISH_THREAD_TERMINATED] = function(hwnd, message, wparam, lparam)
-	if wparam == test_thread_id then
+	if wparam == audio_thread_id then
 		local dead_state = ffi.cast('radish_state*', lparam)
-		print('test thread terminated')
+		print('audio thread terminated')
 		if dead_state.error ~= nil then
-			print('test thread error: ' .. winstr.utf8(dead_state.error))
+			print('audio thread error: ' .. winstr.utf8(dead_state.error))
 		end
-		test_thread_ready = false
-		test_thread_id = nil
+		audio_thread_ready = false
+		audio_thread_id = nil
 	else
-		print('thread terminated but not test thread? (expecting ' .. test_thread_id .. ' got ' .. wparam .. ')')
+		print('thread terminated but not audio thread? (expecting ' .. audio_thread_id .. ' got ' .. wparam .. ')')
 	end
 end
 
 on_other_events[selflib.WMRADISH_THREAD_READY] = function(hwnd, message, wparam, lparam)
-	if wparam == test_thread_id then
-		print 'test thread ready!'
-		test_thread_ready = true
+	if wparam == audio_thread_id then
+		print 'audio thread ready!'
+		audio_thread_ready = true
 	else
-		print('thread ready but not test thread? (expecting ' .. test_thread_id .. ' got ' .. wparam .. ')')
+		print('thread ready but not audio thread? (expecting ' .. audio_thread_id .. ' got ' .. wparam .. ')')
 	end
 end
 
 on_other_events[selflib.WMRADISH_THREAD_SEND_DATA] = function(hwnd, message, wparam, lparam)
-	if wparam == test_thread_id then
+	if wparam == audio_thread_id then
 		local buf = ffi.cast('radish_buffer*', lparam)
 		local data = ffi.string(buf.data, buf.length)
-		print('received message from test thread: ' .. string.format('%q', data))
+		print('received message from audio thread: ' .. string.format('%q', data))
 	else
-		print('received message but not from test thread? (expecting ' .. test_thread_id .. ' got ' .. wparam .. ')')
+		print('received message but not from audio thread? (expecting ' .. audio_thread_id .. ' got ' .. wparam .. ')')
 	end
 end
 
 on_host_events[mswin.WM_LBUTTONDOWN] = function(hwnd, message, wparam, lparam)
-	if test_thread_ready then
-		local message = os.date()
-		print('sending test thread: ' .. message)
-		selflib.radish_send_thread(test_thread_id, message, #message)
+	if audio_thread_ready then
+		local message = 'set_volume(' .. math.random() .. ')'
+		print('sending audio thread: ' .. message)
+		selflib.radish_send_thread(audio_thread_id, message, #message)
 	end
 end
 
 on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
-	if test_thread_ready then
-		mswin.PostThreadMessageW(test_thread_id, mswin.WM_QUIT, 0, 0)
+	if audio_thread_ready then
+		mswin.PostThreadMessageW(audio_thread_id, mswin.WM_QUIT, 0, 0)
 	end
 end
 
