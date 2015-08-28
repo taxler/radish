@@ -98,7 +98,7 @@ end
 
 on_host_events[mswin.WM_LBUTTONDOWN] = function(hwnd, message, wparam, lparam)
 	if audio_thread_ready then
-		local message = 'set_volume(' .. math.random() .. ')'
+		local message = 'set_volume(' .. math.random(0,10) .. ')'
 		print('sending audio thread: ' .. message)
 		selflib.radish_send_thread(audio_thread_id, message, #message)
 	end
