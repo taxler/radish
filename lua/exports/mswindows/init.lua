@@ -476,6 +476,12 @@ ffi.cdef [[
 
 	static const int MAXIMUM_WAIT_OBJECTS = 64;
 
+	enum {
+		FILE_SHARE_READ = 1,
+		FILE_SHARE_WRITE = 2,
+		FILE_SHARE_DELETE = 4
+	};
+
 ]]
 
 if ffi.abi '64bit' then

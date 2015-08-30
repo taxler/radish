@@ -154,7 +154,11 @@ end
 
 function com.release(...)
 	for i = 1, select('#', ...) do
-		ffi.gc(select(i, ...), nil):Release()
+		local v = select(i, ...)
+		if v ~= nil then
+			ffi.gc(v, nil)
+			v:Release()
+		end
 	end
 end
 
@@ -168,6 +172,7 @@ function com.cast(newtype, value)
 end
 
 function com.new(clsid, name)
+	name = name or 'IUnknown'
 	local temp = ffi.new(name .. '*[1]')
 	if (ole32.CoCreateInstance(
     		winguids.guid(clsid),
@@ -177,7 +182,7 @@ function com.new(clsid, name)
 			ffi.cast('void**', temp)) == 0) then
 		return ffi.gc(temp[0], com_gc)
 	else
-		return nil
+		return nil, 'unable to create class: ' .. tostring(clsid)
 	end
 end
 

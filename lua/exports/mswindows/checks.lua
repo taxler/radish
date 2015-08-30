@@ -28,4 +28,14 @@ function checks.out(type, callback)
 	end
 end
 
+function checks.out_struct(type, callback)
+	local output = ffi.new(type)
+	local result = callback(output)
+	if result == 0 then
+		return output
+	else
+		return nil, get_error_message(result)
+	end
+end
+
 return checks

@@ -41,6 +41,8 @@ end
 
 audio.frame_bytes = audio.mix_format.nChannels * (audio.mix_format.wBitsPerSample / 8)
 
+audio.sample_rate = audio.mix_format.nSamplesPerSec
+
 audio.device_period = assert(winchecks.out('int64_t', function(out_device_period)
 	return audio.client:GetDevicePeriod(nil, out_device_period)
 end))
@@ -73,7 +75,7 @@ audio.render_client = assert(com.check_out('IAudioRenderClient*', function(out_r
 	return audio.client:GetService(com.iidof 'IAudioRenderClient', ffi.cast('void**', out_render_client))
 end))
 
-do
+do -- indicate to the OS that this is an audio thread
 	local success, avrt = pcall( require, 'exports.mswindows.media.realtime' )
 	if success then
 		local out_index = ffi.new 'uint32_t[1]'
@@ -85,10 +87,27 @@ do
 	end
 end
 
--- multimedia class scheduler: arvt.AvSetMmThreadCharacteristicsW("Audio", ...) ?
-
 assert(winchecks.success(
 	audio.client:Start()
 ))
+
+function audio.make_silence_source()
+	return function(fill_ptr, fill_len)
+		ffi.fill(fill_ptr, fill_len)
+	end
+end
+
+function audio.make_noise_source(sample_ctype, channels)
+	if sample_ctype == ffi.typeof 'float' then
+		return function(fill_ptr, fill_len)
+			local float_ptr = ffi.cast('float*', fill_ptr)
+			for i = 0, (fill_len / 4) - 1 do
+				float_ptr[i] = math.random(i)
+			end
+		end
+	else
+		error 'unsupported sample type'
+	end
+end
 
 return audio
