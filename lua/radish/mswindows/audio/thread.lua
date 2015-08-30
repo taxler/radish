@@ -146,6 +146,10 @@ if false then
 	end
 end
 
+local function next_sample()
+	return 0, 0
+end
+
 do -- audio processing
 	local out_padding_count = ffi.new 'uint32_t[1]'
 	local out_buffer = ffi.new 'uint8_t*[1]'
@@ -164,12 +168,12 @@ do -- audio processing
 		assert(0 == audio.render_client:GetBuffer(available_frames, out_buffer))
 		local buffer = out_buffer[0]
 		local buf_floats = ffi.cast('float*', buffer)
-		local left_factor = volume_factor * sqrt_2_over_2 * (cos(panning_angle) + sin(panning_angle))
-		local right_factor = volume_factor * sqrt_2_over_2 * (cos(panning_angle) - sin(panning_angle))
+		local left_factor = volume_factor -- * sqrt_2_over_2 * (cos(panning_angle) + sin(panning_angle))
+		local right_factor = volume_factor -- * sqrt_2_over_2 * (cos(panning_angle) - sin(panning_angle))
 		for i = 0, (available_frames * audio.frame_bytes)/4 - 1, 2 do
-			local sample = (math.random() * 2) - 1
-			buf_floats[i] = left_factor * sample
-			buf_floats[i+1] = right_factor * sample
+			local left, right = next_sample()
+			buf_floats[i] = left_factor * left
+			buf_floats[i+1] = right_factor * right
 		end
 		local written_frames = available_frames
 		local flags = 0
@@ -196,6 +200,8 @@ do -- message processing
 	local function on_data(data)
 		local new_volume = tonumber(data:match('^set_volume%((.-)%)$'))
 		local new_panning = tonumber(data:match('^set_panning%((.-)%)$'))
+		local load_mod = data:match('^load_mod%((".-")%)$')
+		local load_gme = data:match('^load_gme%((".-")%)$')
 		if new_volume then
 			-- http://www.dr-lex.be/info-stuff/volumecontrols.html
 			local new_volume_factor = new_volume / 10 -- scale of 0 to 10; steps of 10% smallest that most people can differentiate
@@ -207,6 +213,62 @@ do -- message processing
 			volume_factor = new_volume_factor
 		elseif new_panning then
 			panning_angle = new_panning * (math.pi / 4) -- -1..+1 -> -45deg..+45deg
+		elseif load_mod then
+			load_mod = assert(loadstring('return ' .. load_mod))()
+			local dumb = require 'exports.dumb'
+			dumb.dumb_register_stdfiles()
+			local duh = dumb.dumb_load_mod(load_mod, 0)
+			local sig_renderer = dumb.duh_start_sigrenderer(duh, 0, 2, 0)
+			local buf_size = 1024
+			local buf = dumb.allocate_sample_buffer(2, buf_size)
+			ffi.gc(buf, dumb.destroy_sample_buffer)
+			next_sample = coroutine.wrap(function()
+				while true do
+					dumb.dumb_silence(buf[0], 2 * buf_size)
+					dumb.duh_sigrenderer_generate_samples(sig_renderer, 0.5, 65536 / audio.sample_rate, buf_size, buf)
+					for i = 0, buf_size-1 do
+						coroutine.yield( buf[0][i*2] / 0x800000, buf[0][i*2 + 1] / 0x800000 )
+					end
+				end
+			end)
+		elseif load_gme then
+			load_gme = assert(loadstring('return ' .. load_gme))()
+			local gme = require 'exports.game_music_emu'
+			local out_emu = ffi.new 'Music_Emu*[1]'
+			local emu
+			local err = gme.gme_open_file(load_gme, out_emu, 48000)
+			local buf_size = 1024
+
+			local buf = ffi.new('int16_t[' .. buf_size .. ']')
+
+			if err ~= nil then
+				goto failed
+			end
+			emu = ffi.gc(out_emu[0], gme.gme_delete)
+			err = gme.gme_start_track(emu, 0)
+
+			next_sample = coroutine.wrap(function()
+				while true do
+					ffi.fill(buf, buf_size)
+					local err = gme.gme_play(emu, buf_size, buf)
+					if err ~= nil then
+						print(ffi.string(err))
+						while true do
+							coroutine.yield(0, 0)
+						end
+					end
+					for i = 0, buf_size-1, 2 do
+						coroutine.yield(buf[i] / 0x8000, buf[i+1] / 0x8000)
+					end
+				end
+			end)
+
+			goto done
+
+			::failed::
+			print(ffi.string(err))
+
+			::done::
 		else
 			print('unknown command: ' .. data)
 		end
