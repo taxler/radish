@@ -12,10 +12,12 @@
 
 @setlocal
 
-cl /nologo /c /O2 /W3 /DWIN32 /D_CRT_SECURE_NO_DEPRECATE radish-*.c lpeg/*.c
+@rem /O2 /W3 /D_USE_SSE /D_CRT_SECURE_NO_DEPRECATE /D_LIB /DNDEBUG
+
+cl /I include /nologo /c /DWIN32 /DDUMB_DECLARE_DEPRECATED /DRESAMPLER_DECORATE=dumb /DBARRAY_DECORATE=dumb src\core\*.c src\it\*.c src\helpers\*.c
 @if errorlevel 1 goto :BAD
 
-link /def:exports.def /nologo /out:radish-runner.exe /subsystem:windows radish-*.obj lp*.obj user32.lib gdi32.lib version.lib lua51.lib sqlite3\sqlite3.lib dumb\dumb.lib
+lib *.obj -OUT:dumb.lib
 @if errorlevel 1 goto :BAD
 
 @del *.obj
