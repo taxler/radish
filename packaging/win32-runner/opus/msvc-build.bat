@@ -12,10 +12,10 @@
 
 @setlocal
 
-cl /I include /nologo /c /O2 /W3 /DWIN32 /D_CRT_SECURE_NO_DEPRECATE radish-*.c
+cl /I opus-tools-0.1.9\include /nologo /c /O2 /W3 /DOUTSIDE_SPEEX /DRANDOM_PREFIX=opustools /DFLOATING_POINT /DSPX_RESAMPLE_EXPORT="" opus-tools-0.1.9\src\resample.c
 @if errorlevel 1 goto :BAD
 
-link /def:exports.def /nologo /out:radish-runner.exe /subsystem:windows radish-*.obj user32.lib gdi32.lib version.lib lua51.lib sqlite3\sqlite3.lib dumb\dumb.lib lpeg\lpeg.lib libogg\libogg.lib libvorbis\libvorbis.lib libvorbis\vorbisfile\vorbisfile.lib opus\opustools_resampler.lib
+lib resample.obj -OUT:opustools_resampler.lib
 @if errorlevel 1 goto :BAD
 
 @del *.obj

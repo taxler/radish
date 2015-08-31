@@ -8,6 +8,7 @@ EXPORTS
 	radish_buffer_free
 	radish_buffer_for_wstring
 	radish_buffer_for_bytes
+	fseek64_wrap
 
 	; copied from sqlite3/sqlite3.def
 	sqlite3_version
@@ -552,4 +553,25 @@ EXPORTS
 	ov_halfrate_p
 	ov_fopen
 
-	fseek64_wrap
+	opustools_resampler_init
+	opustools_resampler_init_frac
+	opustools_resampler_destroy
+	opustools_resampler_process_float
+	opustools_resampler_process_int
+	opustools_resampler_process_interleaved_float
+	opustools_resampler_process_interleaved_int
+	opustools_resampler_set_rate
+	opustools_resampler_get_rate
+	opustools_resampler_set_rate_frac
+	opustools_resampler_get_ratio
+	opustools_resampler_set_quality
+	opustools_resampler_get_quality
+	opustools_resampler_set_input_stride
+	opustools_resampler_get_input_stride
+	opustools_resampler_set_output_stride
+	opustools_resampler_get_output_stride
+	opustools_resampler_get_input_latency
+	opustools_resampler_get_output_latency
+	opustools_resampler_skip_zeros
+	opustools_resampler_reset_mem
+	opustools_resampler_strerror

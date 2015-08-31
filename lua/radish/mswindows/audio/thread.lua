@@ -272,29 +272,108 @@ do -- message processing
 		elseif load_ogg then
 			load_ogg = assert(loadstring('return ' .. load_ogg))()
 			local ov = require 'exports.xiph.vorbis.file'
+			local otr = require 'exports.xiph.opus.resampler'
 			local ogf = ffi.new 'OggVorbis_File'
 			if 0 ~= ov.ov_fopen(load_ogg, ogf) then
 				print 'unable to load ogg'
 			else
 				local info = ov.ov_info(ogf, -1)
 				local sample_rate = info.rate -- TODO: resampling
+				local resampler
+				if sample_rate ~= audio.sample_rate then
+					local out_err = ffi.new 'int[1]'
+					resampler = otr.opustools_resampler_init(
+						2,
+						sample_rate,
+						audio.sample_rate,
+						otr.OPUSTOOLS_RESAMPLER_QUALITY_DESKTOP,
+						out_err)
+					if resampler == nil then
+						print('unable to create resampler (error code ' .. out_err[0] .. ')')
+						resampler = nil
+					else
+						ffi.gc(resampler, otr.opustools_resampler_destroy)
+					end
+				end
 				local buf_len = 1024
 				local out_data = ffi.new('float**[1]')
 				local ref_sec = ffi.new 'int[1]'
-				next_sample = coroutine.wrap(function()
-					while true do
-						local samples_read = ov.ov_read_float(ogf, out_data, buf_len, ref_sec)
-						if samples_read > 0 then
-							for i = 0, samples_read-1 do
-								coroutine.yield(out_data[0][0][i], out_data[0][1][i])
-							end
-						else
-							while true do
-								coroutine.yield(0, 0)
+				if resampler == nil then
+					next_sample = coroutine.wrap(function()
+						while true do
+							local samples_read = ov.ov_read_float(ogf, out_data, buf_len, ref_sec)
+							if samples_read > 0 then
+								for i = 0, samples_read-1 do
+									coroutine.yield(out_data[0][0][i], out_data[0][1][i])
+								end
+							else
+								while true do
+									coroutine.yield(0, 0)
+								end
 							end
 						end
-					end
-				end)
+					end)
+				else
+					local resamp_left = ffi.new('float[' .. buf_len .. ']')
+					local resamp_right = ffi.new('float[' .. buf_len .. ']')
+					local ref_in = ffi.new 'uint32_t[1]'
+					local ref_out = ffi.new 'uint32_t[1]'
+					next_sample = coroutine.wrap(function()
+						while true do
+							local total_to_read = ov.ov_read_float(ogf, out_data, buf_len, ref_sec)
+							if total_to_read == 0 then
+								while true do
+									coroutine.yield(0, 0)
+								end
+							end
+							local left_in_ptr = out_data[0][0]
+							local left_in_end = left_in_ptr + total_to_read
+							local right_in_ptr = out_data[0][1]
+							local right_in_end = right_in_ptr + total_to_read
+
+							repeat
+								local left_out_ptr = resamp_left
+								local left_out_end = left_out_ptr + buf_len
+								local right_out_ptr = resamp_right
+								local right_out_end = right_out_ptr + buf_len
+
+								repeat
+									ref_in[0] = left_in_end - left_in_ptr
+									ref_out[0] = left_out_end - left_out_ptr
+									otr.opustools_resampler_process_float(
+										resampler,
+										0,
+										left_in_ptr,
+										ref_in,
+										left_out_ptr,
+										ref_out)
+									left_in_ptr = left_in_ptr + ref_in[0]
+									left_out_ptr = left_out_ptr + ref_out[0]
+								until left_in_ptr == left_in_end or left_out_ptr == left_out_end
+
+								repeat
+									ref_in[0] = right_in_end - right_in_ptr
+									ref_out[0] = right_out_end - right_out_ptr
+									otr.opustools_resampler_process_float(
+										resampler,
+										1,
+										right_in_ptr,
+										ref_in,
+										right_out_ptr,
+										ref_out)
+									right_in_ptr = right_in_ptr + ref_in[0]
+									right_out_ptr = right_out_ptr + ref_out[0]
+								until right_in_ptr == right_in_end or right_out_ptr == right_out_end
+
+								for i = 0, (left_out_ptr - resamp_left)-1 do
+									coroutine.yield(resamp_left[i], resamp_right[i])
+								end
+
+							until left_in_ptr == left_in_end
+
+						end
+					end)
+				end
 			end
 		elseif load_gme then
 			load_gme = assert(loadstring('return ' .. load_gme))()
