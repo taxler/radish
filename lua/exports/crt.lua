@@ -4,6 +4,8 @@ local ffi = require 'ffi'
 ffi.cdef [[
 
 	typedef struct FILE FILE;
+	typedef long int off_t; // does not seem to be very easy to define this
+	typedef intptr_t ssize_t;
 
 	void* malloc(size_t);
 	void free(void*);

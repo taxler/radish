@@ -203,6 +203,7 @@ do -- message processing
 		local load_mod = data:match('^load_mod%((".-")%)$')
 		local load_gme = data:match('^load_gme%((".-")%)$')
 		local load_ogg = data:match('^load_ogg%((".-")%)$')
+		local load_mp3 = data:match('^load_mp3%((".-")%)$')
 		if new_volume then
 			-- http://www.dr-lex.be/info-stuff/volumecontrols.html
 			local new_volume_factor = new_volume / 10 -- scale of 0 to 10; steps of 10% smallest that most people can differentiate
@@ -232,6 +233,42 @@ do -- message processing
 					end
 				end
 			end)
+		elseif load_mp3 then
+			load_mp3 = assert(loadstring('return ' .. load_mp3))()
+			local libmpg123 = package.loaded.mpg123
+			if libmpg123 == nil then
+				libmpg123 = require 'exports.mpg123'
+				libmpg123.mpg123_init()
+			end
+			local mpg123 = libmpg123.mpg123_new(nil, nil)
+			ffi.gc(mpg123, libmpg123.mpg123_delete)
+			local buf_size = libmpg123.mpg123_outblock(mpg123)
+			local buf = ffi.new('uint8_t[' .. buf_size .. ']')
+			if 0 ~= libmpg123.mpg123_open(mpg123, load_mp3) then
+				print 'unable to load mp3'
+			elseif 0 ~= libmpg123.mpg123_format_none(mpg123)
+					or 0 ~= libmpg123.mpg123_format(mpg123, audio.sample_rate, 2, libmpg123.MPG123_ENC_FLOAT_32) then
+				print 'unable to set output format for mp3'
+			else
+				local out_done = ffi.new 'size_t[1]'
+				local float_view = ffi.cast('float*', buf)
+				next_sample = coroutine.wrap(function()
+					local result
+					while true do
+						result = libmpg123.mpg123_read(mpg123, buf, buf_size, out_done)
+						if result ~= 0 and result ~= libmpg123.MPG123_NEW_FORMAT then
+							break
+						end
+						for i = 0, (out_done[0]/4)-1, 2 do
+							coroutine.yield(float_view[i], float_view[i+1])
+						end
+					end
+					print(result)
+					while true do
+						coroutine.yield(0, 0)
+					end
+				end)
+			end
 		elseif load_ogg then
 			load_ogg = assert(loadstring('return ' .. load_ogg))()
 			local ov = require 'exports.xiph.vorbis.file'
