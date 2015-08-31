@@ -12,10 +12,11 @@
 
 @setlocal
 
-cl /I include /nologo /c /O2 /W3 /DWIN32 /D_CRT_SECURE_NO_DEPRECATE radish-*.c
+cl /I ..\..\include /nologo /c /O2 /W3 /D_USE_MATH_DEFINES /D_CRT_SECURE_NO_DEPRECATE /DWIN32 /DNDEBUG /D_WINDOWS /D_USRDLL /DLIBVORBISFILE_EXPORTS ..\lib\vorbisfile.c
+
 @if errorlevel 1 goto :BAD
 
-link /def:exports.def /nologo /out:radish-runner.exe /subsystem:windows radish-*.obj user32.lib gdi32.lib version.lib lua51.lib sqlite3\sqlite3.lib dumb\dumb.lib lpeg\lpeg.lib libogg\libogg.lib libvorbis\libvorbis.lib libvorbis\vorbisfile\vorbisfile.lib
+lib *.obj -OUT:vorbisfile.lib
 @if errorlevel 1 goto :BAD
 
 @del *.obj

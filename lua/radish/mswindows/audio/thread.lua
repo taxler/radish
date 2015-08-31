@@ -202,6 +202,7 @@ do -- message processing
 		local new_panning = tonumber(data:match('^set_panning%((.-)%)$'))
 		local load_mod = data:match('^load_mod%((".-")%)$')
 		local load_gme = data:match('^load_gme%((".-")%)$')
+		local load_ogg = data:match('^load_ogg%((".-")%)$')
 		if new_volume then
 			-- http://www.dr-lex.be/info-stuff/volumecontrols.html
 			local new_volume_factor = new_volume / 10 -- scale of 0 to 10; steps of 10% smallest that most people can differentiate
@@ -231,6 +232,33 @@ do -- message processing
 					end
 				end
 			end)
+		elseif load_ogg then
+			load_ogg = assert(loadstring('return ' .. load_ogg))()
+			local ov = require 'exports.xiph.vorbis.file'
+			local ogf = ffi.new 'OggVorbis_File'
+			if 0 ~= ov.ov_fopen(load_ogg, ogf) then
+				print 'unable to load ogg'
+			else
+				local info = ov.ov_info(ogf, -1)
+				local sample_rate = info.rate -- TODO: resampling
+				local buf_len = 1024
+				local out_data = ffi.new('float**[1]')
+				local ref_sec = ffi.new 'int[1]'
+				next_sample = coroutine.wrap(function()
+					while true do
+						local samples_read = ov.ov_read_float(ogf, out_data, buf_len, ref_sec)
+						if samples_read > 0 then
+							for i = 0, samples_read-1 do
+								coroutine.yield(out_data[0][0][i], out_data[0][1][i])
+							end
+						else
+							while true do
+								coroutine.yield(0, 0)
+							end
+						end
+					end
+				end)
+			end
 		elseif load_gme then
 			load_gme = assert(loadstring('return ' .. load_gme))()
 			local gme = require 'exports.game_music_emu'

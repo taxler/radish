@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include <tchar.h>
 #include <windows.h>
 
@@ -163,4 +164,17 @@ finalize:
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
+}
+
+int fseek64_wrap(FILE* f, __int64 off, int whence) {
+	if(f == NULL) return -1;
+
+#ifdef __MINGW32__
+	return fseeko64(f, off, whence);
+#elif defined (_WIN32)
+	return _fseeki64(f, off, whence);
+#else
+	return fseek(f, off, whence);
+#endif
+
 }
