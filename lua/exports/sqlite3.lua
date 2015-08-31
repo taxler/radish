@@ -7,8 +7,6 @@ ffi.cdef [[
 
 ]]
 
-assert(ffi.C.sqlite3_version ~= nil)
-
 -- attempt to load statically-linked version, otherwise try dynamically-linked
 local lib
 if pcall(function()  assert(ffi.C.sqlite3_version ~= nil)  end) then
