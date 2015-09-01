@@ -95,36 +95,27 @@ local function from_duh(duh)
 				return false
 			end
 		else
-			local t_sample_array = ffi.typeof('$[?]', output.sample_ctype)
 			local frame_size = ffi.sizeof(output.sample_ctype) * channels
-			local last_buffer
-			local last_buffer_frame_count = -1
-			local function get_buffer(frame_count)
-				local buffer
-				if size >= last_buffer_frame_count then
-					buffer = t_sample_array(frame_count * channels)
+
+			local convert_sample do
+				local bits = output.sample_bits or ffi.sizeof(output.sample_ctype) * 8
+				if output.sample_ctype == ffi.typeof 'float' or output.sample_ctype == ffi.typeof 'double' then
+					assert(bits == ffi.sizeof(output.sample_ctype) * 8, 'invalid number of bits for float/double samples')
+					convert_sample = function(v)  return v / 0x800000  end
+				elseif output.sample_ctype == ffi.typeof 'uint8_t' or output.sample_ctype == ffi.typeof 'uint16_t'
+						or output.sample_ctype == ffi.typeof 'uint32_t' or output.sample_ctype == ffi.typeof 'uint64_t' then
+					local max_value = 1
+					for i = 1, bits - 1 do
+						max_value = bit.bor(bit.lshift(max_value, 1), 1)
+					end
+					convert_sample = function(v)  return ((v + 0x800000) * max_size) / 0xffffff end
+				elseif output.sample_ctype == ffi.typeof 'int8_t' or output.sample_ctype == ffi.typeof 'int16_t'
+						or output.sample_ctype == ffi.typeof 'int32_t' or output.sample_ctype == ffi.typeof 'int64_t' then
+					local half_size = bit.lshift(1, bits-1)
+					convert_sample = function(v)  return (v * half_size) / 0x800000 end
+				else
+					error('unsupported sound sample format: ' .. tostring(output.sample_ctype))
 				end
-				last_buffer = buffer
-				return buffer
-			end
-			local convert_sample
-			local bits = output.sample_bits or ffi.sizeof(output.sample_ctype) * 8
-			if output.sample_ctype == ffi.typeof 'float' or output.sample_ctype == ffi.typeof 'double' then
-				assert(bits == ffi.sizeof(output.sample_ctype) * 8, 'invalid number of bits for float/double samples')
-				convert_sample = function(v)  return v / 0x800000  end
-			elseif output.sample_ctype == ffi.typeof 'uint8_t' or output.sample_ctype == ffi.typeof 'uint16_t'
-					or output.sample_ctype == ffi.typeof 'uint32_t' or output.sample_ctype == ffi.typeof 'uint64_t' then
-				local max_value = 1
-				for i = 1, bits - 1 do
-					max_value = bit.bor(bit.lshift(max_value, 1), 1)
-				end
-				convert_sample = function(v)  return ((v + 0x800000) * max_size) / 0xffffff end
-			elseif output.sample_ctype == ffi.typeof 'int8_t' or output.sample_ctype == ffi.typeof 'int16_t'
-					or output.sample_ctype == ffi.typeof 'int32_t' or output.sample_ctype == ffi.typeof 'int64_t' then
-				local half_size = bit.lshift(1, bits-1)
-				convert_sample = function(v)  return (v * half_size) / 0x800000 end
-			else
-				error('unsupported sound sample format: ' .. tostring(output.sample_ctype))
 			end
 
 			function sample_source:write(to_ptr, frame_count)
