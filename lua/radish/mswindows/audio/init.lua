@@ -8,6 +8,7 @@ local winstr = require 'exports.mswindows.strings'
 local ole32 = require 'exports.mswindows.automation'
 local winmedia = require 'exports.mswindows.media'
 local winchecks = require 'exports.mswindows.checks'
+local subtypes = require 'exports.mswindows.media.subtypes'
 
 local audio = {}
 
@@ -35,11 +36,55 @@ audio.mix_format = assert(winchecks.out('WAVEFORMATEX*', function(out_mix_format
 	return audio.client:GetMixFormat(out_mix_format)
 end))
 
-if audio.mix_format.wFormatTag == winmedia.WAVE_FORMAT_EXTENSIBLE then
+if audio.mix_format.wFormatTag == winmedia.WAVE_FORMAT_PCM then
+	audio.sample_bits = audio.mix_format.wBitsPerSample
+	if audio.sample_bits == 8 then
+		audio.sample_ctype = ffi.typeof 'uint8_t'
+	elseif audio.sample_bits == 16 then
+		audio.sample_ctype = ffi.typeof 'int16_t'
+	elseif audio.sample_bits == 32 then
+		audio.sample_ctype = ffi.typeof 'int32_t'
+	elseif audio.sample_bits == 64 then
+		audio.sample_ctype = ffi.typeof 'int64_t'
+	else
+		error('unexpected number of bits per PCM sample: ' .. tostring(audio.sample_bits))
+	end
+elseif audio.mix_format.wFormatTag == winmedia.WAVE_FORMAT_EXTENSIBLE then
 	audio.mix_format_extended = ffi.cast('WAVEFORMATEXTENSIBLE*', audio.mix_format)
+	audio.sample_bits = audio.mix_format_extended.wValidBitsPerSample
+	if audio.mix_format_extended.SubFormat == subtypes.MEDIASUBTYPE_IEEE_FLOAT then
+		if audio.sample_bits == 32 then
+			audio.sample_ctype = ffi.typeof 'float'
+		elseif audio.sample_bits == 64 then
+			audio.sample_ctype = ffi.typeof 'double'
+		else
+			error('unexpected number of bits per IEEE float sample: ' .. tostring(audio.sample_bits))
+		end
+	elseif audio.mix_format_extended.SubFormat == subtypes.MEDIASUBTYPE_PCM then
+		if audio.mix_format_extended.wBitsPerSample == 8 then
+			audio.sample_ctype = ffi.typeof 'uint8_t'
+		elseif audio.mix_format_extended.wBitsPerSample == 16 then
+			audio.sample_ctype = ffi.typeof 'int16_t'
+		elseif audio.mix_format_extended.wBitsPerSample == 32 then
+			audio.sample_ctype = ffi.typeof 'int32_t'
+		elseif audio.mix_format_extended.wBitsPerSample == 64 then
+			audio.sample_ctype = ffi.typeof 'int64_t'
+		else
+			error('unexpected number of bits per PCM sample: ' .. tostring(audio.sample_bits))
+		end
+	else
+		local subtype_name = subtypes[tostring(audio.mix_format_extended.SubFormat)]
+		if subtype_name == nil then
+			error('completely unknoown media subtype ' .. tostring(audio.mix_format_extended.SubFormat))
+		else
+			error('unsupported subtype ' .. tostring(subtype_name))
+		end
+	end
 end
 
 audio.frame_bytes = audio.mix_format.nChannels * (audio.mix_format.wBitsPerSample / 8)
+
+audio.channels = audio.mix_format.nChannels
 
 audio.sample_rate = audio.mix_format.nSamplesPerSec
 

@@ -6,6 +6,7 @@ local on_other_events = require 'radish.mswindows.on_other_events'
 local selflib = require 'radish.mswindows.exports'
 local selfstate = selflib.radish_get_state()
 local audio = require 'radish.mswindows.audio'
+local radish_audio = require 'radish.audio'
 
 local volume_factor = 1.0
 local panning_angle = 0.0
@@ -204,6 +205,7 @@ do -- message processing
 		local load_gme = data:match('^load_gme%((".-")%)$')
 		local load_ogg = data:match('^load_ogg%((".-")%)$')
 		local load_mp3 = data:match('^load_mp3%((".-")%)$')
+		local load_any = data:match(    '^load%((".-")%)$')
 		if new_volume then
 			-- http://www.dr-lex.be/info-stuff/volumecontrols.html
 			local new_volume_factor = new_volume / 10 -- scale of 0 to 10; steps of 10% smallest that most people can differentiate
@@ -215,6 +217,34 @@ do -- message processing
 			volume_factor = new_volume_factor
 		elseif new_panning then
 			panning_angle = new_panning * (math.pi / 4) -- -1..+1 -> -45deg..+45deg
+		elseif load_any then
+			load_any = assert(loadstring('return ' .. load_any))()
+			local loader = radish_audio.load(load_any)
+			if loader == nil then
+				print("unable to load " .. load_any)
+			else
+				local loaded = loader(audio)
+				if loaded == nil then
+					print("unable to load " .. load_any)
+				else
+					local frame_count = audio.buffer_size
+					local sample_buffer = ffi.new(ffi.typeof('$[?]', audio.sample_ctype), frame_count * audio.channels)
+					next_sample = coroutine.wrap(function()
+						while true do
+							local finished = loaded:write(sample_buffer, frame_count)
+							for i = 0, frame_count-1 do
+								coroutine.yield(sample_buffer[i*2], sample_buffer[i*2+1])
+							end
+							if finished then
+								loaded = nil
+								while true do
+									coroutine.yield(0, 0)
+								end
+							end
+						end
+					end)
+				end
+			end
 		elseif load_mod then
 			load_mod = assert(loadstring('return ' .. load_mod))()
 			local dumb = require 'exports.dumb'
