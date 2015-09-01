@@ -1,7 +1,7 @@
 
 local success, dumb = pcall( require, 'exports.dumb' )
 
-if not success then
+if not (success and dumb) then
 	return false
 end
 

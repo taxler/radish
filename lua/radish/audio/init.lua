@@ -16,7 +16,8 @@ function audio.load(path)
 end
 
 local default_loaders = {
-	require 'radish.audio.loaders.dumb';	
+	require 'radish.audio.loaders.dumb';
+	require 'radish.audio.loaders.mpg123';
 }
 for i, loader in ipairs(default_loaders) do
 	if loader then
