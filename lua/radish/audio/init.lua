@@ -11,13 +11,14 @@ function audio.load(path)
 		if attempt ~= nil then
 			return attempt
 		else
-			--print(message)
+			print(tostring(message))
 		end
 	end
 	return nil
 end
 
 local default_loaders = {
+	require 'radish.audio.loaders.ogg_vorbis';
 	require 'radish.audio.loaders.dumb';
 	require 'radish.audio.loaders.game_music_emu';
 	require 'radish.audio.loaders.mpg123'; -- false positives?
