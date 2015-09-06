@@ -77,7 +77,7 @@ int radish_load_init_script(lua_State *L, const wchar_t* name) {
 	HGLOBAL not_hglobal;
 	LPVOID data;
 	int result;
-	if ((hrsrc = FindResourceW(NULL, name, L"INIT")) == NULL) {
+	if ((hrsrc = FindResourceW(NULL, name, L"LAUNCH")) == NULL) {
 		lua_pushliteral(L, "init script not found: ");
 		radish_push_utf8(L, name);
 		lua_concat(L, 2);

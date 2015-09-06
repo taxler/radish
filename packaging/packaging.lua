@@ -148,7 +148,7 @@ if ffi.os == 'Windows' then
 				local f = assert(io.open('packaging/launch/' .. name, 'rb'))
 				local data = f:read('*a')
 				f:close()
-				resources:add('INIT', name, data)
+				resources:add('LAUNCH', name, data)
 			end
 		end
 
