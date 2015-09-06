@@ -143,21 +143,14 @@ if ffi.os == 'Windows' then
 
 		do_module_folder('lua', '')
 
-		resources:add('INIT', 'MAIN.LUA', [[
-
-local boot = require 'radish.mswindows.boot'
-
-boot.main_loop()
-
-]])
-
-		resources:add('INIT', 'AUDIO_THREAD.LUA', [[
-
-local audio_thread = require 'radish.mswindows.audio.thread'
-
-audio_thread.main_loop()
-
-]])
+		for path_type, name in winfiles.dir('packaging/launch') do
+			if path_type == 'file' then
+				local f = assert(io.open('packaging/launch/' .. name, 'rb'))
+				local data = f:read('*a')
+				f:close()
+				resources:add('INIT', name, data)
+			end
+		end
 
 		local selflib_exports_buf = {[=[
 
