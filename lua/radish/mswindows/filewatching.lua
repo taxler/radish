@@ -9,6 +9,49 @@ local on_wait_object_signal = require 'radish.mswindows.on_wait_object_signal'
 
 local filewatching = {}
 
+local function sweep_aux(path)
+	local search = winfiles.dir( path )
+	if search == nil or winhandles.is_invalid( search.handle ) then
+		return 'invalid'
+	end
+	coroutine.yield('start', path)
+	repeat
+		local type, name = search:peek()
+		if type == 'file' then
+			local size = search:get_size()
+			local last_modified = search:get_when_last_modified()
+			if coroutine.yield('file', path, name, size, last_modified) == 'stop' then
+				search:destroy()
+				return 'stop'
+			end
+		elseif type == 'folder' and name ~= '.' and name ~= '..' then
+			if sweep_aux(path .. '/' .. name) == 'stop' then
+				search:destroy()
+				return 'stop'
+			end
+		end
+	until search:move_next() == false
+	coroutine.yield('end', path)
+end
+
+local function sweep_iterator(path)
+	coroutine.yield()
+	while true do
+		local result = sweep_aux(path)
+		if result == 'invalid' then
+			error('invalid path: ' .. path)
+		elseif result == 'stop' then
+			break
+		end
+	end
+end
+
+function filewatching.sweep(path)
+	local x = coroutine.wrap(sweep_iterator)
+	x(path)
+	return x
+end
+
 -- TODO: cancel sweep-scanner on notify and until a fixed time period (100ms?)
 --   has elapsed since last change notification, do a full sweep and
 --   restart the sweep-scanner

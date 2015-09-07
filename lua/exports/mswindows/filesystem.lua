@@ -97,9 +97,31 @@ ffi.cdef [[
 
 	bool32 CreateDirectoryW(const wchar_t* path, SECURITY_ATTRIBUTES*);
 
+	bool32 FileTimeToSystemTime(const FILETIME*, SYSTEMTIME* out_systime);
+
 ]]
 
 local kernel32 = ffi.C
+
+local temp_systime = ffi.new 'SYSTEMTIME'
+local function get_filetime_string(filetime)
+	if filetime.dwLowDateTime == 0 and filetime.dwHighDateTime == 0 then
+		return nil
+	end
+	if false == kernel32.FileTimeToSystemTime(filetime, temp_systime) then
+		return nil
+	end
+	if temp_systime.wMilliseconds == 0 then
+		return string.format('%4d-%02d-%02dT%02d:%02d:%02d',
+			temp_systime.wYear, temp_systime.wMonth, temp_systime.wDay,
+			temp_systime.wHour, temp_systime.wMinute, temp_systime.wSecond)
+	else
+		return string.format('%4d-%02d-%02dT%02d:%02d:%02d.%03d',
+			temp_systime.wYear, temp_systime.wMonth, temp_systime.wDay,
+			temp_systime.wHour, temp_systime.wMinute, temp_systime.wSecond,
+			temp_systime.wMilliseconds)
+	end
+end
 
 local t_win32_file_search = ffi.metatype('t_win32_file_search', {
 	__new = function(t_win32_file_search, path)
@@ -123,6 +145,40 @@ local t_win32_file_search = ffi.metatype('t_win32_file_search', {
 			end
 			local path = winstr.utf8(self.data.cFileName)
 			return filetype, path
+		end;
+		get_name = function(self)
+			if self.data.cFileName[0] == 0 then
+				return nil
+			end
+			return winstr.utf8(self.data.cFileName)
+		end;
+		get_size = function(self)
+			if self.data.cFileName[0] == 0 then
+				return nil
+			end
+			local low = self.data.nFileSizeLow
+			local high = self.data.nFileSizeHigh
+			if high == 0 then
+				return low
+			elseif high < 2^(53-32) + 1 then
+				return low + (high * 0x100000000)
+			elseif high < 2^31 + 1 then
+				return bit.bor(low + 0LL, bit.lshift(high + 0LL, 32))
+			else
+				return bit.bor(low + 0ULL, bit.lshift(high + 0ULL, 32))
+			end
+		end;
+		get_when_last_modified = function(self)
+			if self.data.cFileName[0] == 0 then
+				return nil
+			end
+			return get_filetime_string(self.data.ftLastWriteTime)
+		end;
+		get_when_created = function(self)
+			if self.data.cFileName[0] == 0 then
+				return nil
+			end
+			return get_filetime_string(self.data.ftCreationTime)
 		end;
 		move_next = function(self)
 			if handles.is_invalid( self.handle ) then

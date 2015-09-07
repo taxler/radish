@@ -107,9 +107,10 @@ on_host_events[mswin.WM_LBUTTONDOWN] = function(hwnd, message, wparam, lparam)
 	end
 end
 
+local sweep = filewatching.sweep 'universe'
 on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
-	if audio_thread_ready then
-		mswin.PostThreadMessageW(audio_thread_id, mswin.WM_QUIT, 0, 0)
+	for i = 1, 10 do
+		print(sweep())
 	end
 end
 
