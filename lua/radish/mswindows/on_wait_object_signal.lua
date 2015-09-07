@@ -1,5 +1,6 @@
 
 local ffi = require 'ffi'
+local winhandles = require 'exports.mswindows.handles'
 
 local on_wait_object_signal = {}
 
@@ -7,6 +8,9 @@ local selflib = require 'radish.mswindows.exports'
 local selfstate = selflib.radish_get_state()
 
 function on_wait_object_signal:add(wait_object, handler)
+	if winhandles.is_invalid(wait_object) then
+		error('invalid wait object handle', 2)
+	end
 	selfstate.wait_objects[selfstate.wait_object_count] = wait_object
 	on_wait_object_signal[selfstate.wait_object_count] = handler
 	selfstate.wait_object_count = selfstate.wait_object_count + 1
