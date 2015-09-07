@@ -176,27 +176,21 @@ local function ensure_folder(path)
 	-- strip final slash
 	path = string.match(path, '^(.-)[\\/]?$')
 	local path_type = type_at_path(path)
-	print(path, ' is a ', path_type)
 	if path_type == 'folder' then
-		print 'already a folder!'
 		return true
 	elseif path_type ~= nil then
-		print 'cannot create folder over file'
 		return false
 	end
 	local parent_path, final_part = string.match(path, '^(.+)[\\/]([^\\/]+)$')
 	if parent_path == nil then
 		final_part = path
 	elseif not ensure_folder(parent_path) then
-		print 'ensure parent failed'
 		return false
 	end
 	if string.match(final_part, '[\\/:*?<>|]') then
-		print 'invalid path'
 		return false
 	end
 	local result = kernel32.CreateDirectoryW(winstr.wide(path), nil)
-	print('tried to create', path, result)
 	return result
 end
 
