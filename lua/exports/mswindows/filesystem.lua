@@ -2,6 +2,7 @@
 local bit = require 'bit'
 local ffi = require 'ffi'
 require 'exports.typedef.bool32'
+require 'exports.mswindows'
 local winstr = require 'exports.mswindows.strings'
 local handles = require 'exports.mswindows.handles'
 
@@ -10,6 +11,14 @@ ffi.cdef [[
 	static const int MAX_PATH = 260;
 
 	bool32 CopyFileW(const wchar_t* from_path, const wchar_t* to_path, bool32 fail_if_exists);
+	enum {
+		MOVEFILE_REPLACE_EXISTING = 1, // can't be used to replace a directory/with a directory
+		MOVEFILE_COPY_ALLOWED = 2, // on trying to move to a different volume, simulate with copy & delete
+		MOVEFILE_DELAY_UNTIL_REBOOT = 4, // must be admin or the LocalSystem account
+		MOVEFILE_WRITE_THROUGH = 8, // do not return until file actually written
+		MOVEFILE_FAIL_IF_NOT_TRACKABLE = 0x20
+	};
+	bool32 MoveFileExW(const wchar_t* from_path, const wchar_t* to_path, uint32_t flags);
 
 	typedef struct FILETIME {
 		uint32_t dwLowDateTime, dwHighDateTime;
@@ -86,6 +95,8 @@ ffi.cdef [[
 		FILE_ATTRIBUTE_NO_SCRUB_DATA       = 0x20000
 	};
 
+	bool32 CreateDirectoryW(const wchar_t* path, SECURITY_ATTRIBUTES*);
+
 ]]
 
 local kernel32 = ffi.C
@@ -145,6 +156,50 @@ local t_win32_file_search = ffi.metatype('t_win32_file_search', {
 	end;
 })
 
+local function type_at_path(path)
+	local search_data = ffi.new 'WIN32_FIND_DATA_W'
+	local search_handle = kernel32.FindFirstFileW(winstr.wide(path), search_data)
+	if handles.is_invalid( search_handle ) then
+		return nil
+	end
+	local result
+	if 0 == bit.band(kernel32.FILE_ATTRIBUTE_DIRECTORY, search_data.dwFileAttributes) then
+		result = 'file'
+	else
+		result = 'folder'
+	end
+	kernel32.FindClose(search_handle)
+	return result
+end
+
+local function ensure_folder(path)
+	-- strip final slash
+	path = string.match(path, '^(.-)[\\/]?$')
+	local path_type = type_at_path(path)
+	print(path, ' is a ', path_type)
+	if path_type == 'folder' then
+		print 'already a folder!'
+		return true
+	elseif path_type ~= nil then
+		print 'cannot create folder over file'
+		return false
+	end
+	local parent_path, final_part = string.match(path, '^(.+)[\\/]([^\\/]+)$')
+	if parent_path == nil then
+		final_part = path
+	elseif not ensure_folder(parent_path) then
+		print 'ensure parent failed'
+		return false
+	end
+	if string.match(final_part, '[\\/:*?<>|]') then
+		print 'invalid path'
+		return false
+	end
+	local result = kernel32.CreateDirectoryW(winstr.wide(path), nil)
+	print('tried to create', path, result)
+	return result
+end
+
 return {
 	MAX_PATH = kernel32.MAX_PATH;
 	copy = function(from_path, to_path, fail_if_exists)
@@ -152,6 +207,14 @@ return {
 			winstr.wide(from_path),
 			winstr.wide(to_path),
 			not not fail_if_exists)
+	end;
+	move = function(from_path, to_path, fail_if_exists)
+		return kernel32.MoveFileExW(
+			winstr.wide(from_path),
+			winstr.wide(to_path),
+			(fail_if_exists and 0 or kernel32.MOVEFILE_REPLACE_EXISTING)
+			+ kernel32.MOVEFILE_COPY_ALLOWED
+			+ kernel32.MOVEFILE_WRITE_THROUGH)
 	end;
 	dir = function(path)
 		if path:sub(-1):match('[\\/]') then
@@ -162,4 +225,6 @@ return {
 		end
 		return t_win32_file_search(path)
 	end;
+	type_at_path = type_at_path;
+	ensure_folder = ensure_folder;
 }

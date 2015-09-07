@@ -1,9 +1,13 @@
 
+local mode = ...
+
 local ffi = require 'ffi'
 
 
 local TITLE = 'Pumpkins for Everyone'
 
+
+local build_folder = 'builds/' .. os.date '%Y-%m-%d'
 
 local in_path = 'packaging/win32-runner/radish-runner.exe'
 local temp_path = 'packaging/temp_output.exe'
@@ -20,6 +24,8 @@ function package_assert(is_true, ...)
 	end
 	package_error( (...) )
 end
+
+package_assert(mode == 'run' or mode == 'build', 'expecting mode parameter (run or build)')
 
 function do_packaging(in_path, out_path, context)
 	context:init(in_path)
@@ -54,7 +60,8 @@ if ffi.os == 'Windows' then
 		version_info_strings['FileDescription'] = TITLE
 	end
 	function context:init(path)
-		winfiles.copy(path, temp_path)
+		-- TODO: use random temporary names each time?
+		package_assert( winfiles.copy(path, temp_path), 'unable to replace temporary file' )
 		self.path = temp_path
 	end
 	context.path = temp_path
@@ -195,8 +202,19 @@ return ffi.C
 		resources:add('LUA', 'RADISH.MSWINDOWS.EXPORTS', table.concat(selflib_exports_buf))
 
 		resources:commit()
-		winfiles.copy(self.path, out_path)
-		winfiles.copy('packaging/lua51.dll', 'lua51.dll', true)
+		if mode == 'build' then
+			local n = 1
+			package_assert( winfiles.ensure_folder(build_folder), 'cannot create build folder' )
+			for type, name in winfiles.dir(build_folder) do
+				if string.match(name, '^%d+$') then
+					n = math.max(n, tonumber(name) + 1)
+				end
+			end
+			build_folder = build_folder .. '/' .. tostring(n)
+			package_assert( winfiles.ensure_folder(build_folder), 'cannot create build folder' )
+			winfiles.move(self.path, build_folder .. '/' .. out_path)
+			winfiles.copy('packaging/lua51.dll', build_folder .. '/lua51.dll', true)
+		end
 	end
 end
 
@@ -206,4 +224,9 @@ end
 
 do_packaging(in_path, out_path, context)
 
-os.execute (string.format('start "" "%s"', out_path))
+if mode == 'build' then
+	build_folder = build_folder:gsub([[/]], [[\]])
+	os.execute (string.format('start "" "%s"', build_folder))
+else
+	os.execute (string.format('start "" "%s"', temp_path))
+end
