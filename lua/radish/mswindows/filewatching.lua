@@ -34,7 +34,7 @@ local function sweep_aux(path)
 	coroutine.yield('end', path)
 end
 
-local function sweep_iterator(path)
+local function sweep_stepper_coroproc(path)
 	coroutine.yield()
 	while true do
 		local result = sweep_aux(path)
@@ -46,8 +46,26 @@ local function sweep_iterator(path)
 	end
 end
 
-function filewatching.sweep(path)
-	local x = coroutine.wrap(sweep_iterator)
+function filewatching.sweep_stepper(path)
+	local x = coroutine.wrap(sweep_stepper_coroproc)
+	x(path)
+	return x
+end
+
+function filewatching.stop_sweep_stepper(stepper)
+	stepper('stop')
+end
+
+local function full_sweep_coroproc(path)
+	coroutine.yield()
+	local result = sweep_aux(path)
+	if result == 'invalid' then
+		error('invalid path: ' .. path)
+	end
+end
+
+function filewatching.full_sweep(path)
+	local x = coroutine.wrap(full_sweep_coroproc)
 	x(path)
 	return x
 end
