@@ -46,7 +46,7 @@ local function sweep_stepper_coroproc(path)
 	end
 end
 
-function filewatching.sweep_stepper(path)
+function filewatching.make_sweep_stepper(path)
 	local x = coroutine.wrap(sweep_stepper_coroproc)
 	x(path)
 	return x
@@ -73,7 +73,7 @@ end
 -- TODO: cancel sweep-scanner on notify and until a fixed time period (100ms?)
 --   has elapsed since last change notification, do a full sweep and
 --   restart the sweep-scanner
-local function add_change_notifier(path, recursively)
+local function add_change_notifier(path, recursively, callback)
 	local universe_folder_change_notifier = mswin.FindFirstChangeNotificationW(
 		winstr.wide(path),
 		recursively,
@@ -87,18 +87,19 @@ local function add_change_notifier(path, recursively)
 		return false
 	end
 	on_wait_object_signal:add(universe_folder_change_notifier, function(handle)
-		print 'a change was made!'
+		if callback() == 'stop' then
+			return 'remove'
+		end
 		if mswin.FindNextChangeNotification(handle) == false then
-			print 'creating new notifier'
-			add_change_notifier(path, recursively)
+			add_change_notifier(path, recursively, callback)
 			return 'remove'
 		end
 	end)
 	return true
 end
 
-function filewatching.watch(path, recursively)
-	return add_change_notifier(path, recursively)
+function filewatching.watch(path, recursively, callback)
+	return add_change_notifier(path, recursively, callback)
 end
 
 return filewatching

@@ -46,8 +46,6 @@ function print(...)
 	return _print(...)
 end
 
-filewatching.watch('universe', true)
-
 on_host_events[mswin.WM_CLOSE] = function(hwnd, message, wparam, lparam)
 	prompt.confirm('Are you sure you want to quit?', function(response)
 		if response == true then
@@ -108,20 +106,56 @@ on_host_events[mswin.WM_LBUTTONDOWN] = function(hwnd, message, wparam, lparam)
 	end
 end
 
-local sweep = filewatching.sweep_stepper 'universe'
 on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
-	for i = 1, 10 do
-		print(sweep())
-	end
 end
 
 selfstate.update_timeout = 25
-on_update.after(1000, function(pause)
-	while true do
-		print(math.random())
-		pause(1000)
+local sweep_step, sweep_update
+local function do_sweep()
+	if sweep_step ~= nil then
+		filewatching.stop_sweep_stepper(sweep_step)
+		sweep_step = nil
 	end
+	if sweep_update ~= nil then
+		on_update.kill(sweep_update)
+		sweep_update = nil
+	end
+	local count = 0
+	for type, folder, filename, size, last_modified in filewatching.full_sweep('universe') do
+		count = count + 1
+	end
+	print('full sweep count', count)
+	sweep_step = assert(filewatching.make_sweep_stepper('universe'))
+	sweep_update = on_update.after(1000, function(pause)
+		while true do
+			for i = 1, 100 do
+				local type, folder, filename, size, last_modified = sweep_step()
+				if type == 'end' and folder == 'universe' then
+					print 'completed soft sweep'
+				end
+			end
+			pause(200)
+		end
+	end)
+end
+do_sweep()
+local filenotify_update
+filewatching.watch('universe', true, function()
+	if sweep_update ~= nil then
+		on_update.kill(sweep_update)
+		sweep_update = nil
+	end
+	if sweep_step ~= nil then
+		filewatching.stop_sweep_stepper(sweep_step)
+		sweep_step = nil
+	end
+	if filenotify_update ~= nil then
+		on_update.kill(filenotify_update)
+		filenotify_update = nil
+	end
+	filenotify_update = on_update.after(150, do_sweep)
 end)
+
 
 on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
 	prompt.confirm("Hello World?", function(response)

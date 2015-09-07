@@ -30,6 +30,7 @@ local function pause(ms)
 end
 
 local function update_coroproc(ms, callback)
+	pause(ms)
 	callback(pause)
 end
 
@@ -39,6 +40,17 @@ function on_update.after(ms, callback)
 	local id = #threads_by_id + 1
 	threads_by_id[id] = coro
 	thread_ids[coro] = id
+	return coro
+end
+
+function on_update.kill(coro)
+	local id = thread_ids[coro]
+	if id == nil then
+		return false
+	end
+	thread_ids[coro] = nil
+	threads_by_id[id] = nil
+	return true
 end
 
 return on_update
