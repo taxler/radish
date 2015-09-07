@@ -1,6 +1,4 @@
 
-package.path = 'lua/?.lua;lua/?/init.lua'
-
 local ffi = require 'ffi'
 
 
