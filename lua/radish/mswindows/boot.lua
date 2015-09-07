@@ -10,6 +10,7 @@ local selflib = require 'radish.mswindows.exports'
 local prompt = require 'radish.mswindows.prompt'
 local on_host_events = require 'radish.mswindows.on_host_events'
 local on_other_events = require 'radish.mswindows.on_other_events'
+local on_update = require 'radish.mswindows.on_update'
 local filewatching = require 'radish.mswindows.filewatching'
 
 local boot = {}
@@ -113,6 +114,14 @@ on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
 		print(sweep())
 	end
 end
+
+selfstate.update_timeout = 25
+on_update.after(1000, function(pause)
+	while true do
+		print(math.random())
+		pause(1000)
+	end
+end)
 
 on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
 	prompt.confirm("Hello World?", function(response)

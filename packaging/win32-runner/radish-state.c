@@ -13,6 +13,7 @@ radish_state* radish_create_state(const wchar_t* init_script_name) {
 	radish_state* state = TlsGetValue(radish_state_tls);
 	if (state == NULL) {
 		state = (radish_state*)malloc(sizeof(radish_state));
+		memset(state, 0, sizeof(radish_state));
 		TlsSetValue(radish_state_tls, state);
 	}
 	state->init_script_name = init_script_name;

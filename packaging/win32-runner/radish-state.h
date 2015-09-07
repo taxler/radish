@@ -69,6 +69,8 @@ typedef struct radish_state {
 	unsigned __int32 parent_thread_id;
 	void* wait_objects[MAXIMUM_WAIT_OBJECTS];
 	unsigned __int32 wait_object_count;
+	unsigned __int32 update_timeout;
+	unsigned __int32 last_update;
 } radish_state;
 
 radish_state* radish_get_state();
