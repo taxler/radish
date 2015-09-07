@@ -35,6 +35,40 @@ ffi.cdef [[
 	bool32 FindClose(void* handle);
 
 	enum {
+		FILE_NOTIFY_CHANGE_FILE_NAME = 0x00000001,
+		FILE_NOTIFY_CHANGE_DIR_NAME = 0x00000002,
+		FILE_NOTIFY_CHANGE_ATTRIBUTES = 0x00000004,
+		FILE_NOTIFY_CHANGE_SIZE = 0x00000008,
+		FILE_NOTIFY_CHANGE_LAST_WRITE = 0x00000010,
+		FILE_NOTIFY_CHANGE_SECURITY = 0x00000100
+	};
+
+	typedef struct OVERLAPPED {
+		uintptr_t Internal, InternalHigh;
+		union {
+			struct {
+				uint32_t Offset, OffsetHigh;
+			};
+			void* Pointer;
+		};
+		void* hEvent;
+	} OVERLAPPED;
+
+	typedef void(*FileIOCompletionRoutine)(uint32_t error_code, uint32_t bytes_transferred, OVERLAPPED* ref_overlapped);
+	
+	void* FindFirstChangeNotificationW(const wchar_t* path, bool32 watch_subtree, uint32_t notify_filter);
+	bool32 FindNextChangeNotification(void* handle);
+	bool32 FindCloseChangeNotification(void* handle);
+	bool32 ReadDirectoryChangesW(
+		void* handle,
+		void* out_buf, uint32_t buf_len,
+		bool32 watch_subtree,
+		uint32_t notify_filter,
+		uint32_t* out_buf_bytes_written,
+		OVERLAPPED* ref_overlapped,
+		FileIOCompletionRoutine);
+
+	enum {
 		FILE_ATTRIBUTE_READONLY            = 0x00001,
 		FILE_ATTRIBUTE_HIDDEN              = 0x00002,
 		FILE_ATTRIBUTE_SYSTEM              = 0x00004,

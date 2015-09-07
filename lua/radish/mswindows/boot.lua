@@ -6,10 +6,12 @@ local mswin = require 'exports.mswindows'
 local winkeys = require 'exports.mswindows.keys'
 local winstr = require 'exports.mswindows.strings'
 local winmenus = require 'exports.mswindows.menus'
+local winfiles = require 'exports.mswindows.filesystem'
 local selflib = require 'radish.mswindows.exports'
 local prompt = require 'radish.mswindows.prompt'
 local on_host_events = require 'radish.mswindows.on_host_events'
 local on_other_events = require 'radish.mswindows.on_other_events'
+local on_wait_object_signal = require 'radish.mswindows.on_wait_object_signal'
 
 local boot = {}
 
@@ -43,6 +45,33 @@ function print(...)
 	print = _print
 	return _print(...)
 end
+
+-- TODO: cancel sweep-scanner on notify and until a fixed time period (100ms?)
+--   has elapsed since last change notification, do a full sweep and
+--   restart the sweep-scanner
+local function add_universe_folder_change_notifier()
+	local universe_folder_change_notifier = mswin.FindFirstChangeNotificationW(
+		winstr.wide 'universe',
+		true,
+		mswin.FILE_NOTIFY_CHANGE_FILE_NAME
+		+ mswin.FILE_NOTIFY_CHANGE_DIR_NAME
+		+ mswin.FILE_NOTIFY_CHANGE_SIZE
+		+ mswin.FILE_NOTIFY_CHANGE_LAST_WRITE)
+	if universe_folder_change_notifier == nil then
+		return false
+	end
+	on_wait_object_signal:add(universe_folder_change_notifier, function(handle)
+		print 'a change was made!'
+		if mswin.FindNextChangeNotification(handle) == false then
+			print 'creating new notifier'
+			add_universe_folder_change_notifier()
+			return 'remove'
+		end
+	end)
+	return true
+end
+
+add_universe_folder_change_notifier()
 
 on_host_events[mswin.WM_CLOSE] = function(hwnd, message, wparam, lparam)
 	prompt.confirm('Are you sure you want to quit?', function(response)
