@@ -112,11 +112,11 @@ local function get_filetime_string(filetime)
 		return nil
 	end
 	if temp_systime.wMilliseconds == 0 then
-		return string.format('%4d-%02d-%02dT%02d:%02d:%02d',
+		return string.format('%4d-%02d-%02dT%02d:%02d:%02dZ',
 			temp_systime.wYear, temp_systime.wMonth, temp_systime.wDay,
 			temp_systime.wHour, temp_systime.wMinute, temp_systime.wSecond)
 	else
-		return string.format('%4d-%02d-%02dT%02d:%02d:%02d.%03d',
+		return string.format('%4d-%02d-%02dT%02d:%02d:%02d.%03dZ',
 			temp_systime.wYear, temp_systime.wMonth, temp_systime.wDay,
 			temp_systime.wHour, temp_systime.wMinute, temp_systime.wSecond,
 			temp_systime.wMilliseconds)
