@@ -22,11 +22,12 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, char* command_li
 		radish_update_first(radish);
 		// script may have terminated during the create window phase
 		while (radish_script_running(radish)) {
+			DWORD timeout = radish_update_timeout(radish);
 			DWORD result = MsgWaitForMultipleObjects(
 				radish->wait_object_count,
 				radish->wait_objects,
 				FALSE,
-				radish_update_timeout(radish),
+				timeout,
 				QS_ALLINPUT);
 			if (result == WAIT_OBJECT_0 + radish->wait_object_count) {
 				BOOL first = TRUE;
@@ -125,6 +126,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, char* command_li
 			}
 			else if (result == WAIT_TIMEOUT) {
 				radish_update_certain(radish);
+				if (timeout == 0) Sleep(0);
 			}
 			else if (result == WAIT_FAILED) {
 				radish->error = L"MsgWaitForMultipleObjects Error";

@@ -225,12 +225,12 @@ DWORD WINAPI radish_thread_proc(LPVOID lpParameter) {
 		PostThreadMessage(radish->parent_thread_id, WMRADISH_THREAD_READY, GetCurrentThreadId(), 0);
 		radish_update_first(radish);
 		do {
-
+			DWORD timeout = radish_update_timeout(radish);
 			DWORD result = MsgWaitForMultipleObjects(
 				radish->wait_object_count,
 				radish->wait_objects,
 				FALSE,
-				radish_update_timeout(radish),
+				timeout,
 				QS_ALLINPUT);
 			if (result == WAIT_OBJECT_0 + radish->wait_object_count) {
 				BOOL first = TRUE;
@@ -303,6 +303,7 @@ DWORD WINAPI radish_thread_proc(LPVOID lpParameter) {
 			}
 			else if (result == WAIT_TIMEOUT) {
 				radish_update_certain(radish);
+				if (timeout == 0) Sleep(0);
 			}
 			else {
 				radish->error = L"Unknown result from MsgWaitForMultipleObjects";
