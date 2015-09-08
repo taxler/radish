@@ -10,7 +10,6 @@ local selflib = require 'radish.mswindows.exports'
 local prompt = require 'radish.mswindows.prompt'
 local on_host_events = require 'radish.mswindows.on_host_events'
 local on_other_events = require 'radish.mswindows.on_other_events'
-local on_update = require 'radish.mswindows.on_update'
 local filewatching = require 'radish.mswindows.filewatching'
 
 local boot = {}
@@ -110,52 +109,16 @@ on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
 end
 
 selfstate.update_timeout = 25
-local sweep_step, sweep_update
-local function do_sweep()
-	if sweep_step ~= nil then
-		filewatching.stop_sweep_stepper(sweep_step)
-		sweep_step = nil
-	end
-	if sweep_update ~= nil then
-		on_update.kill(sweep_update)
-		sweep_update = nil
-	end
-	local count = 0
-	for type, folder, filename, size, last_modified in filewatching.full_sweep('universe') do
-		count = count + 1
-	end
-	print('full sweep count', count)
-	sweep_step = assert(filewatching.make_sweep_stepper('universe'))
-	sweep_update = on_update.after(1000, function(pause)
-		while true do
-			for i = 1, 100 do
-				local type, folder, filename, size, last_modified = sweep_step()
-				if type == 'end' and folder == 'universe' then
-					print 'completed soft sweep'
-				end
-			end
-			pause(200)
-		end
-	end)
+function filewatching.on_new(path)
+	print('new', path)
 end
-do_sweep()
-local filenotify_update
-filewatching.watch('universe', true, function()
-	if sweep_update ~= nil then
-		on_update.kill(sweep_update)
-		sweep_update = nil
-	end
-	if sweep_step ~= nil then
-		filewatching.stop_sweep_stepper(sweep_step)
-		sweep_step = nil
-	end
-	if filenotify_update ~= nil then
-		on_update.kill(filenotify_update)
-		filenotify_update = nil
-	end
-	filenotify_update = on_update.after(150, do_sweep)
-end)
-
+function filewatching.on_modified(path)
+	print('mod', path)
+end
+function filewatching.on_deleted(path)
+	print('del', path)
+end
+filewatching.begin('universe')
 
 on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
 	prompt.confirm("Hello World?", function(response)
