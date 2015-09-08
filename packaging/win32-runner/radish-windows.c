@@ -3,6 +3,7 @@
 #include "radish-state.h"
 #include "radish-resources.h"
 #include "radish-dialog.h"
+#include "radish-scripting.h"
 
 radish_state* main_radish = NULL;
 
@@ -122,9 +123,18 @@ LRESULT CALLBACK radish_window_proc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 			return 0;
 	}
 	if (radish->msg.message == WMRADISH_HANDLED) {
+		radish_do_waiting_objects(radish);
+		radish_update_maybe(radish);
 		// Lua does not want the default action(s) to run,
 		// and has provided its own return code
 		return (LRESULT)radish->msg.lParam;
+	}
+	else {
+		// don't move these outside the if block
+		// because they may change radish->msg.message
+		// so WMRADISH_HANDLED check wouldn't work
+		radish_do_waiting_objects(radish);
+		radish_update_maybe(radish);
 	}
 	// do the default thing
 	switch (message) {

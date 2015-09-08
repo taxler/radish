@@ -30,41 +30,12 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, char* command_li
 				timeout,
 				QS_ALLINPUT);
 			if (result == WAIT_OBJECT_0 + radish->wait_object_count) {
-				BOOL first = TRUE;
 				while (PeekMessage(&radish->msg, NULL, 0, 0, PM_REMOVE)) {
 					UINT message = radish->msg.message;
 					HWND hwnd = radish->msg.hwnd;
 					WPARAM wparam = radish->msg.wParam;
 					LPARAM lparam = radish->msg.lParam;
-					if (first) {
-						first = FALSE;
-					}
-					else {
-						DWORD result2 = WaitForMultipleObjects(
-							radish->wait_object_count,
-							radish->wait_objects,
-							FALSE,
-							0);
-						if (result2 >= WAIT_OBJECT_0 && result2 < (WAIT_OBJECT_0 + radish->wait_object_count)) {
-							radish->msg.message = WMRADISH_WAIT_OBJECT_SIGNALLED;
-							radish->msg.hwnd = NULL;
-							radish->msg.lParam = (LPARAM)(result2 - WAIT_OBJECT_0);
-							radish->msg.wParam = (WPARAM)radish->wait_objects[radish->msg.lParam];
-							radish_script_step(radish);
-						}
-						else if (result2 >= WAIT_ABANDONED_0 && result2 < (WAIT_ABANDONED_0 + radish->wait_object_count)) {
-							radish->msg.message = WMRADISH_MUTEX_ABANDONED;
-							radish->msg.hwnd = NULL;
-							radish->msg.lParam = (LPARAM)(result2 - WAIT_ABANDONED_0);
-							radish->msg.wParam = (WPARAM)radish->wait_objects[radish->msg.lParam];
-							radish_script_step(radish);
-						}
-						radish->msg.message = message;
-						radish->msg.hwnd = hwnd;
-						radish->msg.wParam = wparam;
-						radish->msg.lParam = lparam;
-					}
-					if (radish->msg.hwnd == NULL) {
+					if (hwnd == NULL) {
 						radish_script_step(radish);
 						// overridable default behaviours
 						if (radish->msg.message != WMRADISH_HANDLED) {
@@ -106,7 +77,6 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, char* command_li
 					}
 
 				}
-				radish_update_maybe(radish);
 			}
 			else if (result >= WAIT_OBJECT_0 && result < (WAIT_OBJECT_0 + radish->wait_object_count)) {
 				radish->msg.message = WMRADISH_WAIT_OBJECT_SIGNALLED;
