@@ -261,26 +261,6 @@ function filewatching.begin(path)
 		end
 		local count = 0
 
-		exec [[ BEGIN TRANSACTION ]]
-
-		assert( sqlite3.SQLITE_OK == clear_stmt:bind_null(1) )
-		assert( sqlite3.SQLITE_DONE == clear_stmt:step() )
-		assert( sqlite3.SQLITE_OK == clear_stmt:reset() )
-
-		collectgarbage()
-
-		for mode, folder, filename, size, last_modified in filewatching.full_sweep('universe') do
-			count = count + 1
-			if mode == 'file' then
-				assert( sqlite3.SQLITE_OK == bindtext(insert_stmt, 1, folder) )
-				assert( sqlite3.SQLITE_OK == bindtext(insert_stmt, 2, filename) )
-				assert( sqlite3.SQLITE_OK == bindtext(insert_stmt, 3, last_modified) )
-				assert( sqlite3.SQLITE_OK == insert_stmt:bind_int64(4, size) )
-				assert( sqlite3.SQLITE_DONE == insert_stmt:step() )
-				assert( sqlite3.SQLITE_OK == insert_stmt:reset() )
-			end
-		end
-
 		local function flush_changes(folder)
 			if folder == nil then
 				assert( sqlite3.SQLITE_OK == each_new_change_stmt:bind_null(1) )
@@ -322,7 +302,25 @@ function filewatching.begin(path)
 			assert( sqlite3.SQLITE_OK == clear_stmt:reset() )
 		end
 
-		flush_changes(nil)
+		exec [[ BEGIN TRANSACTION ]]
+
+		assert( sqlite3.SQLITE_OK == clear_stmt:bind_null(1) )
+		assert( sqlite3.SQLITE_DONE == clear_stmt:step() )
+		assert( sqlite3.SQLITE_OK == clear_stmt:reset() )
+
+		for mode, folder, filename, size, last_modified in filewatching.full_sweep('universe') do
+			count = count + 1
+			if mode == 'file' then
+				assert( sqlite3.SQLITE_OK == bindtext(insert_stmt, 1, folder) )
+				assert( sqlite3.SQLITE_OK == bindtext(insert_stmt, 2, filename) )
+				assert( sqlite3.SQLITE_OK == bindtext(insert_stmt, 3, last_modified) )
+				assert( sqlite3.SQLITE_OK == insert_stmt:bind_int64(4, size) )
+				assert( sqlite3.SQLITE_DONE == insert_stmt:step() )
+				assert( sqlite3.SQLITE_OK == insert_stmt:reset() )
+			elseif mode == 'end' then
+				flush_changes(folder)
+			end
+		end
 
 		exec [[ COMMIT TRANSACTION ]]
 
