@@ -72,9 +72,6 @@ function filewatching.full_sweep(path)
 	return x
 end
 
--- TODO: cancel sweep-scanner on notify and until a fixed time period (100ms?)
---   has elapsed since last change notification, do a full sweep and
---   restart the sweep-scanner
 local function add_change_notifier(path, recursively, callback)
 	local universe_folder_change_notifier = mswin.FindFirstChangeNotificationW(
 		winstr.wide(path),
@@ -100,10 +97,6 @@ local function add_change_notifier(path, recursively, callback)
 	return true
 end
 
-function filewatching.watch(path, recursively, callback)
-	return add_change_notifier(path, recursively, callback)
-end
-
 function filewatching.on_new(path)
 end
 
@@ -111,6 +104,16 @@ function filewatching.on_modified(path)
 end
 
 function filewatching.on_deleted(path)
+end
+
+local suspended = false
+
+function filewatching.suspend()
+	suspended = true
+end
+
+function filewatching.resume()
+	suspended = false
 end
 
 function filewatching.begin(path)
@@ -420,7 +423,11 @@ function filewatching.begin(path)
 	do_sweep()
 
 	local filenotify_update
-	filewatching.watch('universe', true, function()
+	add_change_notifier('universe', true, function()
+		if suspended then
+			-- ignore changes while filewatching is suspended
+			return
+		end
 		if sweep_update ~= nil then
 			on_update.kill(sweep_update)
 			sweep_update = nil
