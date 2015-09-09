@@ -277,4 +277,30 @@ return {
 	end;
 	type_at_path = type_at_path;
 	ensure_folder = ensure_folder;
+	same_contents = function(path1, path2)
+		local f1 = io.open(path1, 'rb')
+		if f1 == nil then
+			return false
+		end
+		local f2 = io.open(path2, 'rb')
+		if f2 == nil then
+			f1:close()
+			return false
+		end
+		local BUF_SIZE = 1024 * 16
+		while true do
+			local chunk1 = f1:read(BUF_SIZE)
+			local chunk2 = f2:read(BUF_SIZE)
+			if chunk1 ~= chunk2 then
+				f1:close()
+				f2:close()
+				return false
+			end
+			if chunk1 == nil or (#chunk1 < BUF_SIZE) then
+				f1:close()
+				f2:close()
+				return true
+			end
+		end
+	end;
 }

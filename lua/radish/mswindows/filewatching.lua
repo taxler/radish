@@ -131,8 +131,8 @@ function filewatching.begin(path)
 
 		CREATE TABLE IF NOT EXISTS path_change (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			folder TEXT,
-			filename TEXT,
+			folder TEXT NOT NULL,
+			filename TEXT NULL,
 			mode TEXT CHECK( mode IN ('new', 'mod', 'del') ),
 			recorded_at TEXT,
 			last_modified TEXT,
@@ -141,15 +141,40 @@ function filewatching.begin(path)
 
 		CREATE INDEX IF NOT EXISTS path_change_by_path ON path_change(folder, filename);
 
+		CREATE TABLE IF NOT EXISTS change_same_data (
+			copy_id INTEGER NOT NULL,
+			original_id INTEGER NOT NULL,
+			FOREIGN KEY (copy_id) REFERENCES path_change(id),
+			FOREIGN KEY (original_id) REFERENCES path_change(id)
+		);
+
+		CREATE UNIQUE INDEX IF NOT EXISTS same_data_by_copy_id ON change_same_data(copy_id);
+
 		CREATE VIEW IF NOT EXISTS path_current
 		AS
-		SELECT id, folder, filename, mode, recorded_at, last_modified, size
+		SELECT
+			id, folder, filename, mode, recorded_at, last_modified, size,
+			CASE 
+				WHEN size IS NULL or size = 0 THEN NULL
+				ELSE COALESCE(
+					(SELECT csd.original_id
+						FROM change_same_data csd
+						WHERE csd.copy_id = pc1.id),
+					pc1.id)
+			END AS data_id
 		FROM path_change pc1
 		WHERE mode IN ('new', 'mod') AND NOT EXISTS (
 			SELECT 1 FROM path_change pc2
 			WHERE pc2.id > pc1.id
 				AND pc2.folder = pc1.folder
 				AND pc2.filename = pc1.filename);
+
+		CREATE VIEW IF NOT EXISTS change_with_original_data
+		AS
+		SELECT id, folder, filename, mode, recorded_at, last_modified, size
+		FROM path_change pc
+		WHERE size IS NOT NULL AND size > 0 AND NOT EXISTS (
+			SELECT 1 FROM change_same_data WHERE copy_id = pc.id);
 
 		CREATE TABLE IF NOT EXISTS temp.path_current (
 			folder TEXT,
@@ -249,6 +274,18 @@ function filewatching.begin(path)
 		WHERE (tpc.size != mpc.size) OR (tpc.last_modified != mpc.last_modified)
 
 	]]
+	-- args: size
+	local each_same_size_stmt = stmt [[
+
+		SELECT id FROM change_with_original_data WHERE size = ?
+
+	]]
+	-- args: original_id, copy_id
+	local add_copy_stmt = stmt [[
+
+		INSERT INTO change_same_data (original_id, copy_id) VALUES (?, ?)
+
+	]]
 	local sweep_step, sweep_update
 	local function do_sweep()
 		if sweep_step ~= nil then
@@ -283,6 +320,34 @@ function filewatching.begin(path)
 				local folder = textcol(each_new_change_stmt, 0)
 				local filename = textcol(each_new_change_stmt, 1)
 				local mode = textcol(each_new_change_stmt, 2)
+				if (mode == 'mod' or mode == 'new')
+				and each_new_change_stmt:column_type(5) == sqlite3.SQLITE_INTEGER
+				and winfiles.ensure_folder('undo_history/data') then
+					local size = each_new_change_stmt:column_int64(5)
+					if size > 0 then
+						local self_id = db:last_insert_rowid()
+						local copy_from_id
+						assert( sqlite3.SQLITE_OK == each_same_size_stmt:bind_int64(1, size) )
+						while sqlite3.SQLITE_ROW == each_same_size_stmt:step() do
+							local id = each_same_size_stmt:column_int64(0)
+							local data_path = 'undo_history/data/' .. tostring(id):gsub('LL$', '')
+							if winfiles.same_contents(folder..'/'..filename, data_path) then
+								copy_from_id = id
+								break
+							end
+						end
+						assert( sqlite3.SQLITE_OK == each_same_size_stmt:reset() )
+						if copy_from_id == nil then
+							local data_path = 'undo_history/data/' .. tostring(self_id):gsub('LL$', '')
+							winfiles.copy(folder..'/'..filename, data_path)
+						else
+							assert( sqlite3.SQLITE_OK == add_copy_stmt:bind_int64(1, copy_from_id) )
+							assert( sqlite3.SQLITE_OK == add_copy_stmt:bind_int64(2, self_id) )
+							assert( sqlite3.SQLITE_DONE == add_copy_stmt:step() )
+							assert( sqlite3.SQLITE_OK == add_copy_stmt:reset() )
+						end
+					end
+				end
 				if mode == 'mod' then
 					filewatching.on_modified(folder..'/'..filename)
 				elseif mode == 'new' then
