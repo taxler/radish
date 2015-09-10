@@ -49,7 +49,9 @@ on_other_events[selflib.WMRADISH_THREAD_TERMINATED] = function(hwnd, message, wp
 		return
 	end
 	on_thread_events[wparam] = nil
-	events:on_terminated(ffi.cast('radish_state*', lparam))
+	local dead_radish = ffi.cast('radish_state*', lparam)
+	local error_message = (dead_radish.error ~= nil) and winstr.utf8(dead_radish.error) or nil
+	events:on_terminated(error_message, dead_radish)
 end
 
 on_other_events[selflib.WMRADISH_THREAD_READY] = function(hwnd, message, wparam, lparam)

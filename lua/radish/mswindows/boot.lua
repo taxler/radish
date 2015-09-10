@@ -11,6 +11,7 @@ local prompt = require 'radish.mswindows.prompt'
 local on_host_events = require 'radish.mswindows.on_host_events'
 local on_other_events = require 'radish.mswindows.on_other_events'
 local on_thread_events = require 'radish.mswindows.on_thread_events'
+local task_client = require 'radish.mswindows.task.client'
 local filewatching = require 'radish.mswindows.filewatching'
 
 local boot = {}
@@ -64,10 +65,10 @@ end
 
 local audio_thread = on_thread_events.spawn_thread('audio_thread.lua')
 
-function audio_thread:on_terminated(dead_state)
+function audio_thread:on_terminated(error_message)
 	print('audio thread terminated')
-	if dead_state.error ~= nil then
-		print('audio thread error: ' .. winstr.utf8(dead_state.error))
+	if error_message ~= nil then
+		print('audio thread error: ' .. error_message)
 	end
 end
 
@@ -85,7 +86,21 @@ on_host_events[mswin.WM_LBUTTONDOWN] = function(hwnd, message, wparam, lparam)
 	audio_thread:send_message(message)
 end
 
+local task_worker = task_client.spawn_worker()
+
+function task_worker:on_response(...)
+	print('response from worker', ...)
+end
+
+function task_worker:on_terminated(error_message)
+	print('worker thread terminated')
+	if error_message ~= nil then
+		print('worker thread error: ' .. error_message)
+	end
+end
+
 on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
+	task_worker:send_command('echo', {1, 2, 3}, false, nil, 12.5)
 end
 
 selfstate.update_timeout = 25
