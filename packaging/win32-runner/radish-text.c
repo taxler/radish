@@ -34,3 +34,13 @@ wchar_t* radish_to_wstring(lua_State *L, int index) {
 	lua_replace(L, index);
 	return buf;
 }
+
+wchar_t* radish_clone_wstring(const wchar_t* wstring) {
+	size_t len;
+	wchar_t* clone;
+	if (wstring == NULL) return NULL;
+	len = wcslen(wstring);
+	clone = (wchar_t*)malloc(sizeof(wchar_t) * (len + 1));
+	memcpy(clone, wstring, sizeof(wchar_t) * (len + 1));
+	return clone;
+}

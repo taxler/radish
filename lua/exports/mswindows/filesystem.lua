@@ -12,6 +12,13 @@ ffi.cdef [[
 
 	bool32 CopyFileW(const wchar_t* from_path, const wchar_t* to_path, bool32 fail_if_exists);
 	enum {
+		COPY_FILE_FAIL_IF_EXISTS = 1,
+		COPY_FILE_RESTARTABLE = 2,
+		COPY_FILE_OPEN_SOURCE_FOR_WRITE = 4,
+		COPY_FILE_ALLOW_DECRYPTED_DESTINATION = 8,
+		COPY_FILE_COPY_SYMLINK = 0x00000800,
+		COPY_FILE_NO_BUFFERING = 0x00001000,
+		
 		MOVEFILE_REPLACE_EXISTING = 1, // can't be used to replace a directory/with a directory
 		MOVEFILE_COPY_ALLOWED = 2, // on trying to move to a different volume, simulate with copy & delete
 		MOVEFILE_DELAY_UNTIL_REBOOT = 4, // must be admin or the LocalSystem account

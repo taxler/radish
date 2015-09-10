@@ -116,7 +116,7 @@ function filewatching.resume()
 	suspended = false
 end
 
-function filewatching.begin(path)
+function filewatching.begin(path, task_worker)
 	assert( winfiles.ensure_folder('undo_history'), 'unable to create undo_history folder' )
 	local db do
 		local out_db = ffi.new 'sqlite3*[1]'
@@ -342,7 +342,11 @@ function filewatching.begin(path)
 						assert( sqlite3.SQLITE_OK == each_same_size_stmt:reset() )
 						if copy_from_id == nil then
 							local data_path = 'undo_history/data/' .. tostring(self_id):gsub('LL$', '')
-							winfiles.copy(folder..'/'..filename, data_path)
+							task_worker:send_command(
+								'copy_file',
+								folder..'/'..filename,
+								data_path,
+								self_id)
 						else
 							assert( sqlite3.SQLITE_OK == add_copy_stmt:bind_int64(1, copy_from_id) )
 							assert( sqlite3.SQLITE_OK == add_copy_stmt:bind_int64(2, self_id) )

@@ -8,6 +8,10 @@ EXPORTS
 	radish_buffer_free
 	radish_buffer_for_wstring
 	radish_buffer_for_bytes
+	radish_begin_progressing_file_op
+	radish_continue_progressing_file_op
+	radish_free_progressing_file_op
+
 	fseek64_wrap
 
 	; copied from sqlite3/sqlite3.def

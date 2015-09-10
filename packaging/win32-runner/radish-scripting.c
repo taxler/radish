@@ -320,3 +320,44 @@ BOOL radish_do_waiting_objects(radish_state* radish) {
 	}
 	return FALSE;
 }
+
+void radish_do_pending_events(radish_state* radish) {
+	DWORD result = MsgWaitForMultipleObjects(
+		radish->wait_object_count,
+		radish->wait_objects,
+		FALSE,
+		0,
+		QS_ALLINPUT);
+	if (result != WAIT_TIMEOUT) {
+		if (result == WAIT_OBJECT_0 + radish->wait_object_count) {
+			while (PeekMessage(&radish->msg, NULL, 0, 0, PM_REMOVE)) {
+				UINT message = radish->msg.message;
+				LPARAM lparam = radish->msg.lParam;
+				radish_script_step(radish);
+				switch (message) {
+					case WMRADISH_DIALOG_RESPONSE:
+						radish_free_dialog(radish, (radish_dialog*)lparam);
+						break;
+					case WMRADISH_THREAD_SEND_DATA:
+						radish_buffer_free((radish_buffer*)lparam);
+						break;
+				}
+			}
+		}
+		else if (result >= WAIT_OBJECT_0 && result < (WAIT_OBJECT_0 + radish->wait_object_count)) {
+			radish->msg.message = WMRADISH_WAIT_OBJECT_SIGNALLED;
+			radish->msg.hwnd = NULL;
+			radish->msg.lParam = (LPARAM)(result - WAIT_OBJECT_0);
+			radish->msg.wParam = (WPARAM)radish->wait_objects[radish->msg.lParam];
+			radish_script_step(radish);
+		}
+		else if (result >= WAIT_ABANDONED_0 && result < (WAIT_ABANDONED_0 + radish->wait_object_count)) {
+			radish->msg.message = WMRADISH_MUTEX_ABANDONED;
+			radish->msg.hwnd = NULL;
+			radish->msg.lParam = (LPARAM)(result - WAIT_ABANDONED_0);
+			radish->msg.wParam = (WPARAM)radish->wait_objects[radish->msg.lParam];
+			radish_script_step(radish);
+		}
+	}
+	radish_update_maybe(radish);
+}

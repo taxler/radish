@@ -100,7 +100,6 @@ function task_worker:on_terminated(error_message)
 end
 
 on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
-	task_worker:send_command('echo', {1, 2, 3}, false, nil, 12.5)
 end
 
 selfstate.update_timeout = 25
@@ -113,7 +112,7 @@ end
 function filewatching.on_deleted(path)
 	print('del', path)
 end
-filewatching.begin('universe')
+filewatching.begin('universe', task_worker)
 
 on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
 	prompt.confirm("Hello World?", function(response)
