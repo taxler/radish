@@ -6,7 +6,6 @@ local selflib = require 'radish.mswindows.exports'
 local selfstate = selflib.radish_get_state()
 local comms = require 'radish.mswindows.task.comms'
 local on_other_events = require 'radish.mswindows.on_other_events'
-local on_thread_events = require 'radish.mswindows.on_thread_events'
 
 local worker_thread = {}
 
