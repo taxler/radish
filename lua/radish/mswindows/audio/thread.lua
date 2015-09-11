@@ -3,6 +3,7 @@ local mswin = require 'exports.mswindows'
 local ffi = require 'ffi'
 local on_wait_object_signal = require 'radish.mswindows.on_wait_object_signal'
 local on_other_events = require 'radish.mswindows.on_other_events'
+local comms = require 'radish.mswindows.task.comms'
 local selflib = require 'radish.mswindows.exports'
 local selfstate = selflib.radish_get_state()
 local audio = require 'radish.mswindows.audio'
@@ -197,61 +198,65 @@ function print(...)
 	selflib.radish_send_thread(selfstate.parent_thread_id, buf, #buf)
 end
 
-do -- message processing
-	local function on_data(data)
-		local new_volume = tonumber(data:match('^set_volume%((.-)%)$'))
-		local new_panning = tonumber(data:match('^set_panning%((.-)%)$'))
-		local load_any = data:match(    '^load%((".-")%)$')
-		if new_volume then
-			-- http://www.dr-lex.be/info-stuff/volumecontrols.html
-			local new_volume_factor = new_volume / 10 -- scale of 0 to 10; steps of 10% smallest that most people can differentiate
-			new_volume_factor = math.exp(new_volume_factor * math.log(1000)) / 1000 -- reverse logarithmic nature of volume
-			if new_volume < 1 then
-				-- make sure 0 really is 0, with smooth fit for near-zero
-				new_volume_factor = new_volume_factor * new_volume
-			end
-			volume_factor = new_volume_factor
-		elseif new_panning then
-			panning_angle = new_panning * (math.pi / 4) -- -1..+1 -> -45deg..+45deg
-		elseif load_any then
-			load_any = assert(loadstring('return ' .. load_any))()
-			local loader = radish_audio.load(load_any)
-			if loader == nil then
-				print("unable to load " .. load_any)
-			else
-				local loaded = loader(audio)
-				if loaded == nil then
-					print("unable to load " .. load_any)
-				else
-					local frame_count = audio.buffer_size
-					local sample_buffer = ffi.new(ffi.typeof('$[?]', audio.sample_ctype), frame_count * audio.channels)
-					next_sample = coroutine.wrap(function()
-						while true do
-							local finished = loaded:write(sample_buffer, frame_count)
-							for i = 0, frame_count-1 do
-								coroutine.yield(sample_buffer[i*2], sample_buffer[i*2+1])
-							end
-							if finished then
-								loaded = nil
-								while true do
-									coroutine.yield(0, 0)
-								end
-							end
-						end
-					end)
-				end
-			end
+local on_command = {}
+
+function handle_command(name, ...)
+	local handler = on_command[name]
+	if handler ~= nil then
+		return handler(...)
+	end
+	print('unknown command: ' .. tostring(name))
+end
+
+function on_command.set_volume(new_volume)
+	-- http://www.dr-lex.be/info-stuff/volumecontrols.html
+	local new_volume_factor = new_volume / 10 -- scale of 0 to 10; steps of 10% smallest that most people can differentiate
+	new_volume_factor = math.exp(new_volume_factor * math.log(1000)) / 1000 -- reverse logarithmic nature of volume
+	if new_volume < 1 then
+		-- make sure 0 really is 0, with smooth fit for near-zero
+		new_volume_factor = new_volume_factor * new_volume
+	end
+	volume_factor = new_volume_factor
+end
+
+function on_command.new_panning(new_panning)
+	panning_angle = new_panning * (math.pi / 4) -- -1..+1 -> -45deg..+45deg
+end
+
+function on_command.load(path)
+	local loader = radish_audio.load(path)
+	if loader == nil then
+		print("unable to load " .. path)
+	else
+		local loaded = loader(audio)
+		if loaded == nil then
+			print("unable to load " .. path)
 		else
-			print('unknown command: ' .. data)
+			local frame_count = audio.buffer_size
+			local sample_buffer = ffi.new(ffi.typeof('$[?]', audio.sample_ctype), frame_count * audio.channels)
+			next_sample = coroutine.wrap(function()
+				while true do
+					local finished = loaded:write(sample_buffer, frame_count)
+					for i = 0, frame_count-1 do
+						coroutine.yield(sample_buffer[i*2], sample_buffer[i*2+1])
+					end
+					if finished then
+						loaded = nil
+						while true do
+							coroutine.yield(0, 0)
+						end
+					end
+				end
+			end)
 		end
 	end
+end
 
-	on_other_events[selflib.WMRADISH_THREAD_SEND_DATA] = function(_, message, wparam, lparam)
-		local buf = ffi.cast('radish_buffer*', lparam)
-		local data = ffi.string(buf.data, buf.length)
-		on_data(data)
-		print(audio.sample_rate)
-	end
+on_other_events[selflib.WMRADISH_THREAD_SEND_DATA] = function(_, message, wparam, lparam)
+	local buf = ffi.cast('radish_buffer*', lparam)
+	local command = ffi.string(buf.data, buf.length)
+	handle_command(comms.deserialize(command))
+	print(audio.sample_rate)
 end
 
 local function each_event()

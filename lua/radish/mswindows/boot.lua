@@ -12,6 +12,7 @@ local on_host_events = require 'radish.mswindows.on_host_events'
 local on_other_events = require 'radish.mswindows.on_other_events'
 local on_thread_events = require 'radish.mswindows.on_thread_events'
 local task_client = require 'radish.mswindows.task.client'
+local comms = require 'radish.mswindows.task.comms'
 local filewatching = require 'radish.mswindows.filewatching'
 
 local boot = {}
@@ -80,10 +81,12 @@ function audio_thread:on_message(data)
 	print('received message from audio thread: ' .. data)
 end
 
+function audio_thread:send_command(...)
+	return self:send_message(comms.serialize(...))
+end
+
 on_host_events[mswin.WM_LBUTTONDOWN] = function(hwnd, message, wparam, lparam)
-	local message = 'set_volume(' .. math.random(0,10) .. ')'
-	print('sending audio thread: ' .. message)
-	audio_thread:send_message(message)
+	audio_thread:send_command('set_volume', math.random(0,10))
 end
 
 local task_worker = task_client.spawn_worker()
