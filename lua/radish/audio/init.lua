@@ -6,15 +6,17 @@ local audio = {}
 audio.loaders = {}
 
 function audio.load(path)
+	local failures
 	for i, loader in ipairs(audio.loaders) do
 		local attempt, message = loader(path)
 		if attempt ~= nil then
 			return attempt
 		else
-			print(tostring(message))
+			failures = failures or {}
+			failures[#failures+1] = message
 		end
 	end
-	return nil
+	return nil, failures and table.concat(failures, '\n') or 'failed to read audio data'
 end
 
 local default_loaders = {
