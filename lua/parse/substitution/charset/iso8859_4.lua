@@ -1,0 +1,55 @@
+
+local byte = require 'parse.substitution.charset.byte'
+
+return byte + {
+	['\xa1'] = '\u{104}'; -- latin capital letter a with ogonek
+	['\xa2'] = '\u{138}'; -- latin small letter kra
+	['\xa3'] = '\u{156}'; -- latin capital letter r with cedilla
+	['\xa5'] = '\u{128}'; -- latin capital letter i with tilde
+	['\xa6'] = '\u{13b}'; -- latin capital letter l with cedilla
+	['\xa9'] = '\u{160}'; -- latin capital letter s with caron
+	['\xaa'] = '\u{112}'; -- latin capital letter e with macron
+	['\xab'] = '\u{122}'; -- latin capital letter g with cedilla
+	['\xac'] = '\u{166}'; -- latin capital letter t with stroke
+	['\xae'] = '\u{17d}'; -- latin capital letter z with caron
+	['\xb1'] = '\u{105}'; -- latin small letter a with ogonek
+	['\xb2'] = '\u{2db}'; -- ogonek
+	['\xb3'] = '\u{157}'; -- latin small letter r with cedilla
+	['\xb5'] = '\u{129}'; -- latin small letter i with tilde
+	['\xb6'] = '\u{13c}'; -- latin small letter l with cedilla
+	['\xb7'] = '\u{2c7}'; -- caron
+	['\xb9'] = '\u{161}'; -- latin small letter s with caron
+	['\xba'] = '\u{113}'; -- latin small letter e with macron
+	['\xbb'] = '\u{123}'; -- latin small letter g with cedilla
+	['\xbc'] = '\u{167}'; -- latin small letter t with stroke
+	['\xbd'] = '\u{14a}'; -- latin capital letter eng
+	['\xbe'] = '\u{17e}'; -- latin small letter z with caron
+	['\xbf'] = '\u{14b}'; -- latin small letter eng
+	['\xc0'] = '\u{100}'; -- latin capital letter a with macron
+	['\xc7'] = '\u{12e}'; -- latin capital letter i with ogonek
+	['\xc8'] = '\u{10c}'; -- latin capital letter c with caron
+	['\xca'] = '\u{118}'; -- latin capital letter e with ogonek
+	['\xcc'] = '\u{116}'; -- latin capital letter e with dot above
+	['\xcf'] = '\u{12a}'; -- latin capital letter i with macron
+	['\xd0'] = '\u{110}'; -- latin capital letter d with stroke
+	['\xd1'] = '\u{145}'; -- latin capital letter n with cedilla
+	['\xd2'] = '\u{14c}'; -- latin capital letter o with macron
+	['\xd3'] = '\u{136}'; -- latin capital letter k with cedilla
+	['\xd9'] = '\u{172}'; -- latin capital letter u with ogonek
+	['\xdd'] = '\u{168}'; -- latin capital letter u with tilde
+	['\xde'] = '\u{16a}'; -- latin capital letter u with macron
+	['\xe0'] = '\u{101}'; -- latin small letter a with macron
+	['\xe7'] = '\u{12f}'; -- latin small letter i with ogonek
+	['\xe8'] = '\u{10d}'; -- latin small letter c with caron
+	['\xea'] = '\u{119}'; -- latin small letter e with ogonek
+	['\xec'] = '\u{117}'; -- latin small letter e with dot above
+	['\xef'] = '\u{12b}'; -- latin small letter i with macron
+	['\xf0'] = '\u{111}'; -- latin small letter d with stroke
+	['\xf1'] = '\u{146}'; -- latin small letter n with cedilla
+	['\xf2'] = '\u{14d}'; -- latin small letter o with macron
+	['\xf3'] = '\u{137}'; -- latin small letter k with cedilla
+	['\xf9'] = '\u{173}'; -- latin small letter u with ogonek
+	['\xfd'] = '\u{169}'; -- latin small letter u with tilde
+	['\xfe'] = '\u{16b}'; -- latin small letter u with macron
+	['\xff'] = '\u{2d9}'; -- dot above
+}

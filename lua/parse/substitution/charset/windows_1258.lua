@@ -1,0 +1,51 @@
+
+local byte = require 'parse.substitution.charset.byte'
+
+return byte + {
+	['\x80'] = '\u{20ac}'; -- euro sign
+	['\x81'] = require 'parse.substitution.undefined_char';
+	['\x82'] = '\u{201a}'; -- single low-9 quotation mark
+	['\x83'] = '\u{192}'; -- latin small letter f with hook
+	['\x84'] = '\u{201e}'; -- double low-9 quotation mark
+	['\x85'] = '\u{2026}'; -- horizontal ellipsis
+	['\x86'] = '\u{2020}'; -- dagger
+	['\x87'] = '\u{2021}'; -- double dagger
+	['\x88'] = '\u{2c6}'; -- modifier letter circumflex accent
+	['\x89'] = '\u{2030}'; -- per mille sign
+	['\x8a'] = require 'parse.substitution.undefined_char';
+	['\x8b'] = '\u{2039}'; -- single left-pointing angle quotation mark
+	['\x8c'] = '\u{152}'; -- latin capital ligature oe
+	['\x8d'] = require 'parse.substitution.undefined_char';
+	['\x8e'] = require 'parse.substitution.undefined_char';
+	['\x8f'] = require 'parse.substitution.undefined_char';
+	['\x90'] = require 'parse.substitution.undefined_char';
+	['\x91'] = '\u{2018}'; -- left single quotation mark
+	['\x92'] = '\u{2019}'; -- right single quotation mark
+	['\x93'] = '\u{201c}'; -- left double quotation mark
+	['\x94'] = '\u{201d}'; -- right double quotation mark
+	['\x95'] = '\u{2022}'; -- bullet
+	['\x96'] = '\u{2013}'; -- en dash
+	['\x97'] = '\u{2014}'; -- em dash
+	['\x98'] = '\u{2dc}'; -- small tilde
+	['\x99'] = '\u{2122}'; -- trade mark sign
+	['\x9a'] = require 'parse.substitution.undefined_char';
+	['\x9b'] = '\u{203a}'; -- single right-pointing angle quotation mark
+	['\x9c'] = '\u{153}'; -- latin small ligature oe
+	['\x9d'] = require 'parse.substitution.undefined_char';
+	['\x9e'] = require 'parse.substitution.undefined_char';
+	['\x9f'] = '\u{178}'; -- latin capital letter y with diaeresis
+	['\xc3'] = '\u{102}'; -- latin capital letter a with breve
+	['\xcc'] = '\u{300}'; -- combining grave accent
+	['\xd0'] = '\u{110}'; -- latin capital letter d with stroke
+	['\xd2'] = '\u{309}'; -- combining hook above
+	['\xd5'] = '\u{1a0}'; -- latin capital letter o with horn
+	['\xdd'] = '\u{1af}'; -- latin capital letter u with horn
+	['\xde'] = '\u{303}'; -- combining tilde
+	['\xe3'] = '\u{103}'; -- latin small letter a with breve
+	['\xec'] = '\u{301}'; -- combining acute accent
+	['\xf0'] = '\u{111}'; -- latin small letter d with stroke
+	['\xf2'] = '\u{323}'; -- combining dot below
+	['\xf5'] = '\u{1a1}'; -- latin small letter o with horn
+	['\xfd'] = '\u{1b0}'; -- latin small letter u with horn
+	['\xfe'] = '\u{20ab}'; -- dong sign
+}
