@@ -428,13 +428,13 @@ local two_chars = lib.C(1) * lib.C(1) * m.P(-1)
 
 function lib.R(...)
 	local matcher = m.P(false)
-	for i = 1, select('#', ...) do
+	for i = select('#', ...), 1, -1 do
 		local pair = select(i, ...)
 		local from_char, to_char = two_chars:match(pair)
 		if from_char == nil then
 			error('bad argument #' .. i .. ': expecting sequence of 2 utf-8 characters', 2)
 		end
-		matcher = matcher + make_range(from_char, to_char)
+		matcher = make_range(from_char, to_char) + matcher
 	end
 	return matcher
 end
