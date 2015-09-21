@@ -13,9 +13,6 @@ return re.compile([[
 	standalone_decl <- %s+ 'standalone' %s* '=' %s* ((['] standalone [']) / (["] standalone ["]))
 	standalone <- {:standalone: ('yes' %TRUE) / ('no' %FALSE) :}
 
-	SQ <- "'"
-	DQ <- "'"
-
 ]], {
 	NIL = m.Cc(nil);
 	TRUE = m.Cc(true);
