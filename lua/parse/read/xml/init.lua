@@ -59,13 +59,15 @@ local c_remaining_content = re.compile([=[
 
 	bad_char <- {| {:bad_char: . :} {:type:''->'bad_char':} |}
 
-	entity <- '&' (named / numeric) ';'
+	entity <- '&' (fixed / numeric / named)
 
-	named <- {| {:name: %NAME :} {:type:''->'entity':} {:entity_type:''->'named':} |}
+	fixed <- ('amp;' -> '&') / ('lt;' -> '<') / ('quot;' -> '"') / ('gt;' -> '>') / ('apos;' -> "'")
+
+	named <- {| {:name: %NAME :} ';' {:type:''->'entity':} {:entity_type:''->'named':} |}
 	numeric <- '#' (('x' hex) / decimal)
 
-	hex <- {| {:hex: %x+ :} {:type:''->'entity':} {:entity_type:''->'hex':} |}
-	decimal <- {| {:decimal: %d+ :} {:type:''->'entity':} {:entity_type:''->'decimal':} |}
+	hex <- {| {:hex: %x+ :} ';' {:type:''->'entity':} {:entity_type:''->'hex':} |}
+	decimal <- {| {:decimal: %d+ :} ';' {:type:''->'entity':} {:entity_type:''->'decimal':} |}
 
 ]=], {
 	TAG_OPEN = assert(c_tag_open);
