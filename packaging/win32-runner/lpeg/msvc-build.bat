@@ -12,7 +12,7 @@
 
 @setlocal
 
-cl /I ..\include /nologo /c /O2 /W3 /DWIN32 /D_CRT_SECURE_NO_DEPRECATE *.c
+cl /I ..\include /nologo /c /O2 /W3 /DWIN32 /D_CRT_SECURE_NO_DEPRECATE /DLPEG_DEBUG *.c
 @if errorlevel 1 goto :BAD
 
 lib *.obj -OUT:lpeg.lib
