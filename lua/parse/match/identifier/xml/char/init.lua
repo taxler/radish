@@ -1,5 +1,6 @@
 
 local m = require 'lpeg'
-return require 'parse.match.identifier.xml.char.first' + m.R'09' + m.S '-.'
+local m_utf8 = require 'parse.match.utf8'
 
--- TODO: support #xB7 | [#x0300-#x036F] | [#x203F-#x2040]
+return m.R '09' + m.S'-.' + require 'parse.match.identifier.xml.char.first'
+	+ m_utf8.P '\u{B7}' + m_utf8.R('\u{300}\u{36f}', '\u{203f}\u{2040}')
