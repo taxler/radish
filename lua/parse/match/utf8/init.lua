@@ -14,6 +14,8 @@ lib.byte_sequence_ranges = {
 	{'\xE1\xEC', '\x80\xBF', '\x80\xBF'};
 	-- U+00D000 to U+00D7FF
 	{'\xED\xED', '\x80\x9F', '\x80\xBF'};
+	-- U+00E000 to U+00FFFF
+	{'\xEE\xEF', '\x80\xBF', '\x80\xBF'};
 	-- U+010000 to U+03FFFF
 	{'\xF0\xF0', '\x90\xBF', '\x80\xBF', '\x80\xBF'};
 	-- U+040000 to U+0FFFFF
@@ -256,6 +258,45 @@ local function make_range(from_char, to_char)
 		end
 		return m.P '\xED' * m.R(from_mid .. to_mid) * m.R('\x80\xBF')
 	end
+	if from_char <= '\u{ffff}' then
+		-- three byte sequence that starts with \xEE-\xEF
+		if to_char >= '\u{10000}' then
+			return make_range(from_char, '\u{ffff}') + make_range('\u{10000}', to_char)
+		end
+		local from_hi  = string.sub(from_char, 1,1)
+		local to_hi    = string.sub(to_char,   1,1)
+		local from_mid = string.sub(from_char, 2,2)
+		local to_mid   = string.sub(to_char,   2,2)
+		local from_lo  = string.sub(from_char, 3,3)
+		local to_lo    = string.sub(to_char,   3,3)
+		if from_hi ~= to_hi then
+			if from_mid ~= '\x80' or from_lo ~= '\x80' then
+				local after_from_hi = string.char(string.byte(from_hi) + 1)
+				return make_range(from_char, from_hi .. '\xBF\xBF')
+					+ make_range(after_from_hi .. '\x80\x80', to_char)
+			end
+			if to_mid ~= '\xBF' or to_lo ~= '\xBF' then
+				local before_to_hi = string.char(string.byte(to_hi) - 1)
+				return make_range(from_char, before_to_hi .. '\xBF\xBF')
+					+ make_range(to_hi .. '\x80\x80', to_char)
+			end
+			return m.R(from_hi .. to_hi) * m.R('\x80\xBF') * m.R('\x80\xBF')
+		end
+		if from_mid == to_mid then
+			return m.P(from_hi .. from_mid) * m.R(from_lo .. to_lo)
+		end
+		if from_lo ~= '\x80' then
+			local after_from_mid = string.char(string.byte(from_mid) + 1)
+			return (m.P(from_hi .. from_mid) * m.R(from_lo .. '\xBF'))
+				+ make_range(from_hi .. after_from_mid .. '\x80', to_char)
+		end
+		if to_lo ~= '\xBF' then
+			local before_to_mid = string.char(string.byte(to_mid) - 1)
+			return make_range(from_char, from_hi .. before_to_mid .. '\xBF')
+				+ (from_hi * m.P(to_mid) * m.R('\x80' .. to_lo))
+		end
+		return from_hi * m.R(from_mid .. to_mid) * m.R '\x80\xBF'
+	end	
 	if from_char <= '\u{3ffff}' then
 		-- four byte sequence that starts with \xF0
 		if to_char >= '\u{40000}' then
