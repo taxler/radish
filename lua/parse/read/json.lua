@@ -1,4 +1,6 @@
 
+-- TODO: support \uDxxx\xDxxx surrogate pairs
+
 local bit = require 'bit'
 local m = require 'lpeg'
 local re = require 're'
