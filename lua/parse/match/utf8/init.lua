@@ -92,21 +92,6 @@ end
 
 local prefix_char = m.C(m_char) * m.Cp()
 
-function lib.S(set)
-	local char
-	local i = 1
-	local matcher = m.P(false)
-	-- TODO: put in a list, sort them, make use of common prefixes
-	while pos < #set do
-		char, i = prefix_char:match(set, i)
-		if char == nil then
-			error('invalid utf-8 sequence', 2)
-		end
-		matcher = matcher + char
-	end
-	return matcher
-end
-
 function lib.B(patt)
 	return m.B(lib.P(patt))
 end
@@ -135,308 +120,307 @@ function lib.Cmt(patt, func)
 	return m.Cmt(lib.P(patt), func)
 end
 
--- TODO: make more use of common prefix where possible
-local function make_range(from_char, to_char)
-	if from_char == to_char then
-		return m.P(from_char)
+local function add_ranges(ranges, from_char, to_char)
+	-- we don't need to do anything if from_char and to_char
+	-- only differ by their final byte
+	if #from_char ~= #to_char
+	or (#from_char > 1 and from_char:sub(1, -2) ~= to_char:sub(1, -2)) then
+		local min_char, max_char
+		-- if this loop does not break/return, from_char is invalid
+		for i = 1, #lib.byte_sequence_ranges do
+			min_char = lib.byte_sequence_ranges[i].min
+			max_char = lib.byte_sequence_ranges[i].max
+			if from_char <= max_char then
+				if to_char <= max_char then
+					break
+				end
+				-- if lib.byte_sequence_ranges[i+1] is nil, to_char is invalid
+				local next_min_char = lib.byte_sequence_ranges[i+1].min
+				add_ranges(ranges, from_char, max_char)
+				add_ranges(ranges, next_min_char, to_char)
+				return
+			end
+		end
+		-- this loop should always break/return
+		for i = 1, #from_char-1 do
+			local from_b = string.byte(from_char, i)
+			local to_b = string.byte(to_char, i)
+			if from_b ~= to_b then
+				if string.sub(from_char, i+1) ~= string.sub(min_char, i+1) then
+					add_ranges(ranges,
+						from_char,
+						string.sub(from_char, 1, i)
+							.. string.sub(max_char, i + 1))
+					add_ranges(ranges,
+						string.sub(from_char, 1, i - 1)
+							.. string.char(from_b + 1)
+							.. string.sub(min_char, i + 1),
+						to_char)
+				elseif string.sub(to_char, i+1) ~= string.sub(max_char, i+1) then
+					add_ranges(ranges,
+						from_char,
+						string.sub(from_char, 1, i - 1)
+							.. string.char(to_b - 1)
+							.. string.sub(max_char, i + 1))
+					add_ranges(ranges,
+						string.sub(from_char, 1, i - 1)
+							.. string.char(from_b + 1)
+							.. string.sub(min_char, i + 1),
+						to_char)
+				else
+					break
+				end
+				return
+			end
+		end
 	end
-	if from_char <= '\u{7f}' then
-		-- one-byte sequence
-		if to_char >= '\u{80}' then
-			return m.R(from_char .. '\u{7f}') + make_range('\u{80}', to_char)
-		end
-		return m.R(from_char .. to_char)
-	end
-	if from_char <= '\u{7ff}' then
-		-- two-byte sequence
-		if to_char >= '\u{800}' then
-			return make_range(from_char, '\u{7ff}') + make_range('\u{800}', to_char)
-		end
-		local from_hi = string.sub(from_char, 1,1)
-		local to_hi =   string.sub(to_char,   1,1)
-		local from_lo = string.sub(from_char, 2,2)
-		local to_lo =   string.sub(to_char,   2,2)
-		if from_hi == to_hi then
-			return m.P(from_hi) * m.R(from_lo .. to_lo)
-		end
-		if from_lo ~= '\x80' then
-			local after_from_hi = string.char(string.byte(from_hi) + 1)
-			return (m.P(from_hi) * m.R(from_lo .. '\xBF'))
-				+ make_range(after_from_hi .. '\x80', to_char)
-		end
-		if to_lo ~= '\xBF' then
-			local before_to_hi = string.char(string.byte(to_hi) - 1)
-			return make_range(from_char, before_to_hi .. '\xBF')
-				+ (m.P(to_hi) * m.R('\x80' .. to_lo))
-		end
-		return m.R(from_hi .. to_hi) * m.R('\x80\xBF')
-	end
-	if from_char <= '\u{fff}' then
-		-- three byte sequence that starts with \xE0
-		if to_char >= '\u{1000}' then
-			return make_range(from_char, '\u{fff}') + make_range('\u{1000}', to_char)
-		end
-		local from_mid = string.sub(from_char, 2,2)
-		local to_mid   = string.sub(to_char,   2,2)
-		local from_lo  = string.sub(from_char, 3,3)
-		local to_lo    = string.sub(to_char,   3,3)
-		if from_mid == to_mid then
-			return m.P('\xE0' .. from_mid) * m.R(from_lo .. to_lo)
-		end
-		if from_lo ~= '\x80' then
-			local after_from_mid = string.char(string.byte(from_mid) + 1)
-			return (m.P('\xE0' * from_mid) * m.R(from_lo .. '\xBF'))
-				+ make_range('\xE0' .. after_from_mid .. '\x80', to_char)
-		end
-		if to_lo ~= '\xBF' then
-			local before_to_mid = string.char(string.byte(to_mid) - 1)
-			return make_range(from_char, '\xE0' .. before_to_mid .. '\xBF')
-				+ (m.P('\xE0'..to_mid) * m.R('\x80' .. to_lo))
-		end
-		return m.P '\xE0' * m.R(from_mid .. to_mid) * m.R('\x80\xBF')
-	end
-	if from_char <= '\u{cfff}' then
-		-- three byte sequence that starts with \xE1-\xEC
-		if to_char >= '\u{d000}' then
-			return make_range(from_char, '\u{cfff}') + make_range('\u{d000}', to_char)
-		end
-		local from_hi  = string.sub(from_char, 1,1)
-		local to_hi    = string.sub(to_char,   1,1)
-		local from_mid = string.sub(from_char, 2,2)
-		local to_mid   = string.sub(to_char,   2,2)
-		local from_lo  = string.sub(from_char, 3,3)
-		local to_lo    = string.sub(to_char,   3,3)
-		if from_hi ~= to_hi then
-			if from_mid ~= '\x80' or from_lo ~= '\x80' then
-				local after_from_hi = string.char(string.byte(from_hi) + 1)
-				return make_range(from_char, from_hi .. '\xBF\xBF')
-					+ make_range(after_from_hi .. '\x80\x80', to_char)
-			end
-			if to_mid ~= '\xBF' or to_lo ~= '\xBF' then
-				local before_to_hi = string.char(string.byte(to_hi) - 1)
-				return make_range(from_char, before_to_hi .. '\xBF\xBF')
-					+ make_range(to_hi .. '\x80\x80', to_char)
-			end
-			return m.R(from_hi .. to_hi) * m.R('\x80\xBF') * m.R('\x80\xBF')
-		end
-		if from_mid == to_mid then
-			return m.P(from_hi .. from_mid) * m.R(from_lo .. to_lo)
-		end
-		if from_lo ~= '\x80' then
-			local after_from_mid = string.char(string.byte(from_mid) + 1)
-			return (m.P(from_hi .. from_mid) * m.R(from_lo .. '\xBF'))
-				+ make_range(from_hi .. after_from_mid .. '\x80', to_char)
-		end
-		if to_lo ~= '\xBF' then
-			local before_to_mid = string.char(string.byte(to_mid) - 1)
-			return make_range(from_char, from_hi .. before_to_mid .. '\xBF')
-				+ (from_hi * m.P(to_mid) * m.R('\x80' .. to_lo))
-		end
-		return from_hi * m.R(from_mid .. to_mid) * m.R '\x80\xBF'
-	end
-	if from_char <= '\u{d7ff}' then
-		-- three byte sequence that starts with \xED
-		if to_char >= '\u{10000}' then
-			return make_range(from_char, '\u{d7ff}') + make_range('\u{10000}', to_char)
-		end
-		local from_mid = string.sub(from_char, 2,2)
-		local to_mid   = string.sub(to_char,   2,2)
-		local from_lo  = string.sub(from_char, 3,3)
-		local to_lo    = string.sub(to_char,   3,3)
-		if from_mid == to_mid then
-			return m.P('\xED' .. from_mid) * m.R(from_lo .. to_lo)
-		end
-		if from_lo ~= '\x80' then
-			local after_from_mid = string.char(string.byte(from_mid) + 1)
-			return (m.P('\xED' * from_mid) * m.R(from_lo .. '\xBF'))
-				+ make_range('\xED' .. after_from_mid .. '\x80', to_char)
-		end
-		if to_lo ~= '\xBF' then
-			local before_to_mid = string.char(string.byte(to_mid) - 1)
-			return make_range(from_char, '\xED' .. before_to_mid .. '\xBF')
-				+ (m.P('\xED'..to_mid) * m.R('\x80' .. to_lo))
-		end
-		return m.P '\xED' * m.R(from_mid .. to_mid) * m.R('\x80\xBF')
-	end
-	if from_char <= '\u{ffff}' then
-		-- three byte sequence that starts with \xEE-\xEF
-		if to_char >= '\u{10000}' then
-			return make_range(from_char, '\u{ffff}') + make_range('\u{10000}', to_char)
-		end
-		local from_hi  = string.sub(from_char, 1,1)
-		local to_hi    = string.sub(to_char,   1,1)
-		local from_mid = string.sub(from_char, 2,2)
-		local to_mid   = string.sub(to_char,   2,2)
-		local from_lo  = string.sub(from_char, 3,3)
-		local to_lo    = string.sub(to_char,   3,3)
-		if from_hi ~= to_hi then
-			if from_mid ~= '\x80' or from_lo ~= '\x80' then
-				local after_from_hi = string.char(string.byte(from_hi) + 1)
-				return make_range(from_char, from_hi .. '\xBF\xBF')
-					+ make_range(after_from_hi .. '\x80\x80', to_char)
-			end
-			if to_mid ~= '\xBF' or to_lo ~= '\xBF' then
-				local before_to_hi = string.char(string.byte(to_hi) - 1)
-				return make_range(from_char, before_to_hi .. '\xBF\xBF')
-					+ make_range(to_hi .. '\x80\x80', to_char)
-			end
-			return m.R(from_hi .. to_hi) * m.R('\x80\xBF') * m.R('\x80\xBF')
-		end
-		if from_mid == to_mid then
-			return m.P(from_hi .. from_mid) * m.R(from_lo .. to_lo)
-		end
-		if from_lo ~= '\x80' then
-			local after_from_mid = string.char(string.byte(from_mid) + 1)
-			return (m.P(from_hi .. from_mid) * m.R(from_lo .. '\xBF'))
-				+ make_range(from_hi .. after_from_mid .. '\x80', to_char)
-		end
-		if to_lo ~= '\xBF' then
-			local before_to_mid = string.char(string.byte(to_mid) - 1)
-			return make_range(from_char, from_hi .. before_to_mid .. '\xBF')
-				+ (from_hi * m.P(to_mid) * m.R('\x80' .. to_lo))
-		end
-		return from_hi * m.R(from_mid .. to_mid) * m.R '\x80\xBF'
-	end	
-	if from_char <= '\u{3ffff}' then
-		-- four byte sequence that starts with \xF0
-		if to_char >= '\u{40000}' then
-			return make_range(from_char, '\u{3ffff}') + make_range('\u{40000}', to_char)
-		end
-		local from_2  = string.sub(from_char, 2,2)
-		local to_2    = string.sub(to_char,   2,2)
-		local from_3  = string.sub(from_char, 3,3)
-		local to_3    = string.sub(to_char,   3,3)
-		local from_4  = string.sub(from_char, 4,4)
-		local to_4    = string.sub(to_char,   4,4)
-		if from_2 ~= to_2 then
-			if from_3 ~= '\x80' or from_4 ~= '\x80' then
-				local after_from_2 = string.char(string.byte(from_2) + 1)
-				return make_range(from_char, '\xF0' .. from_2 .. '\xBF\xBF')
-					+ make_range('\xF0' .. after_from_2 .. '\x80\x80', to_char)
-			elseif to_3 ~= '\xBF' or to_4 ~= '\xBF' then
-				local before_to_2 = string.char(string.byte(to_2) - 1)
-				return make_range(from_char, '\xF0' .. before_to_2 .. '\xBF\xBF')
-					+ make_range('\xF0' .. to_2 .. '\x80\x80', to_char)
-			end
-			return '\xF0' * m.R(from_2 .. to_2) * m.R('\x80\xBF') * m.R('\x80\xBF')
-		end
-		if from_3 == to_3 then
-			return m.P('\xF0' .. from_2 .. from_3) * m.R(from_4 .. to_4)
-		end
-		if from_4 ~= '\x80' then
-			local after_from_3 = string.char(string.byte(from_3) + 1)
-			return (m.P('\xF0' .. from_2 .. from_3) * m.R(from_4 .. '\xBF'))
-				+ make_range('\xF0' .. from_2 .. after_from_3 .. '\x80', to_char)
-		end
-		if to_4 ~= '\xBF' then
-			local before_to_3 = string.char(string.byte(to_3) - 1)
-			return make_range(from_char, '\xF0' .. from_2 .. before_to_3 .. '\xBF')
-				+ (m.P('\xF0' .. from_2 .. to_3) * m.R('\x80' .. to_4))
-		end
-		return ('\xF0' .. from_2) * m.R(from_3 .. to_3) * m.R '\x80\xBF'
-	end
-	if from_char <= '\u{fffff}' then
-		-- four byte sequence that starts with \xF1-\xF3
-		if to_char >= '\u{100000}' then
-			return make_range(from_char, '\u{fffff}') + make_range('\u{100000}', to_char)
-		end
-		local from_1  = string.sub(from_char, 1,1)
-		local to_1    = string.sub(to_char,   1,1)
-		local from_2  = string.sub(from_char, 2,2)
-		local to_2    = string.sub(to_char,   2,2)
-		local from_3  = string.sub(from_char, 3,3)
-		local to_3    = string.sub(to_char,   3,3)
-		local from_4  = string.sub(from_char, 4,4)
-		local to_4    = string.sub(to_char,   4,4)
-		if from_1 ~= to_1 then
-			if from_2 ~= '\x80' or from_3 ~= '\x80' or from_4 ~= '\x80' then
-				local after_from_1 = string.char(string.byte(from_1) + 1)
-				return make_range(from_char, from_1 .. '\xBF\xBF\xBF')
-					+ make_range(after_from_1 .. '\x80\x80\x80', to_char)
-			elseif to_2 ~= '\xBF' or to_3 ~= '\xBF' or to_4 ~= '\xBF' then
-				local before_to_1 = string.char(string.byte(to_1) - 1)
-				return make_range(from_char, before_to_1 .. '\xBF\xBF\xBF')
-					+ make_range(to_1 .. '\x80\x80\x80', to_char)
-			end
-			return m.R(from_1 .. to_1) * m.R('\x80\xBF') * m.R('\x80\xBF') * m.R('\x80\xBF')
-		end
-		if from_2 ~= to_2 then
-			if from_3 ~= '\x80' or from_4 ~= '\x80' then
-				local after_from_2 = string.char(string.byte(from_2) + 1)
-				return make_range(from_char, from_1 .. from_2 .. '\xBF\xBF')
-					+ make_range(from_1 .. after_from_2 .. '\x80\x80', to_char)
-			elseif to_3 ~= '\xBF' or to_4 ~= '\xBF' then
-				local before_to_2 = string.char(string.byte(to_2) - 1)
-				return make_range(from_char, from_1 .. before_to_2 .. '\xBF\xBF')
-					+ make_range(from_1 .. to_2 .. '\x80\x80', to_char)
-			end
-			return m.P(from_1) * m.R(from_2 .. to_2) * m.R('\x80\xBF') * m.R('\x80\xBF')
-		end
-		if from_3 == to_3 then
-			return m.P(from_1 .. from_2 .. from_3) * m.R(from_4 .. to_4)
-		end
-		if from_4 ~= '\x80' then
-			local after_from_3 = string.char(string.byte(from_3) + 1)
-			return (m.P(from_1 .. from_2 .. from_3) * m.R(from_4 .. '\xBF'))
-				+ make_range(from_1 .. from_2 .. after_from_3 .. '\x80', to_char)
-		end
-		if to_4 ~= '\xBF' then
-			local before_to_3 = string.char(string.byte(to_3) - 1)
-			return make_range(from_char, from_1 .. from_2 .. before_to_3 .. '\xBF')
-				+ (m.P(from_1 .. from_2 .. to_3) * m.R('\x80' .. to_4))
-		end
-		return (from_1 .. from_2) * m.R(from_3 .. to_3) * m.R '\x80\xBF'
-	end	
-	do
-		-- four byte sequence that starts with \xF4
-		local from_2  = string.sub(from_char, 2,2)
-		local to_2    = string.sub(to_char,   2,2)
-		local from_3  = string.sub(from_char, 3,3)
-		local to_3    = string.sub(to_char,   3,3)
-		local from_4  = string.sub(from_char, 4,4)
-		local to_4    = string.sub(to_char,   4,4)
-		if from_2 ~= to_2 then
-			if from_3 ~= '\x80' or from_4 ~= '\x80' then
-				local after_from_2 = string.char(string.byte(from_2) + 1)
-				return make_range(from_char, '\xF4' .. from_2 .. '\xBF\xBF')
-					+ make_range('\xF4' .. after_from_2 .. '\x80\x80', to_char)
-			elseif to_3 ~= '\xBF' or to_4 ~= '\xBF' then
-				local before_to_2 = string.char(string.byte(to_2) - 1)
-				return make_range(from_char, '\xF4' .. before_to_2 .. '\xBF\xBF')
-					+ make_range('\xF4' .. to_2 .. '\x80\x80', to_char)
-			end
-			return '\xF4' * m.R(from_2 .. to_2) * m.R('\x80\xBF') * m.R('\x80\xBF')
-		end
-		if from_3 == to_3 then
-			return m.P('\xF4' .. from_2 .. from_3) * m.R(from_4 .. to_4)
-		end
-		if from_4 ~= '\x80' then
-			local after_from_3 = string.char(string.byte(from_3) + 1)
-			return (m.P('\xF4' .. from_2 .. from_3) * m.R(from_4 .. '\xBF'))
-				+ make_range('\xF4' .. from_2 .. after_from_3 .. '\x80', to_char)
-		end
-		if to_4 ~= '\xBF' then
-			local before_to_3 = string.char(string.byte(to_3) - 1)
-			return make_range(from_char, '\xF0' .. from_2 .. before_to_3 .. '\xBF')
-				+ (m.P('\xF4' .. from_2 .. to_3) * m.R('\x80' .. to_4))
-		end
-		return ('\xF4' .. from_2) * m.R(from_3 .. to_3) * m.R '\x80\xBF'
-	end	
+	ranges[#ranges+1] = {from_char, to_char}
 end
 
 local two_chars = lib.C(1) * lib.C(1) * m.P(-1)
 
-function lib.R(...)
+local function next_char(c)
+	if c == '' then
+		return '\0'
+	end
+	local final_b = string.byte(c, -1)
+	local rest = string.sub(c, 1, -2)
+	if final_b == 0xff then
+		return next_char(rest) .. '\0'
+	end
+	return rest .. string.char(final_b + 1)
+end
+
+local function sort_ranges(ranges)
+	-- sort by the first character
+	table.sort(ranges, function(a,b)  return a[1] < b[1];  end)
+	-- combine touching/overlapping ranges
+	local i = 1
+	local range = ranges[i]
+	if range == nil then
+		return
+	end
+	repeat
+		i = i + 1
+		local next_range = ranges[i]
+		while next_range ~= nil
+		and (range[2] >= next_range[1] or next_char(range[2]) == next_range[1]) do
+			if range[2] < next_range[2] then
+				range[2] = next_range[2]
+			end
+			table.remove(ranges, i)
+			next_range = ranges[i]
+		end
+		range = next_range
+	until range == nil
+end
+
+local function find_common_range_prefix(rangeA, rangeB)
+	if #rangeA[1] ~= #rangeB[1] then
+		return nil
+	end
+	for i = 1, #rangeA[1] do
+		if string.byte(rangeA[1], i) ~= string.byte(rangeA[2], i)
+		or string.byte(rangeB[1], i) ~= string.byte(rangeB[2], i)
+		or string.byte(rangeA[1], i) ~= string.byte(rangeB[1], i) then
+			if i == 1 then
+				return nil
+			end
+			return string.sub(rangeA[1], 1, i-1)
+		end
+	end
+end
+
+local function make_range_pattern(from_char, to_char, start_pos)
+	local matcher = m.P(true)
+	for i = start_pos or 1, #from_char do
+		local from_b = string.byte(from_char, i)
+		local to_b = string.byte(to_char, i)
+		if from_b == to_b then
+			matcher = matcher * m.P(string.char(from_b))
+		else
+			matcher = matcher * m.R(string.char(from_b, to_b))
+		end
+	end
+	return matcher
+end
+
+local function aux_range_pattern(sorted_ranges, i)
+	local range = sorted_ranges[i]
+	if range == nil then
+		return nil
+	end
+	i = i + 1
+	local next_range = sorted_ranges[i]
+	if next_range == nil then
+		return make_range_pattern(range[1], range[2]), nil
+	end
+	local prefix = find_common_range_prefix(range, next_range)
+	if prefix == nil then
+		return make_range_pattern(range[1], range[2]), i
+	end
+	alt_suffix = {[prefix]={range, next_range}}
+	i = i + 1
+	next_range = sorted_ranges[i]
+	while next_range ~= nil do
+		prefix = find_common_range_prefix(range, next_range)
+		if prefix == nil then
+			break
+		end
+		local prefixed = alt_suffix[prefix]
+		if prefixed == nil then
+			prefixed = {}
+			alt_suffix[prefix] = prefixed
+		end
+		prefixed[#prefixed+1] = next_range
+		i = i + 1
+		next_range = sorted_ranges[i]
+	end
+	local prefixes = {}
+	for prefix in pairs(alt_suffix) do
+		prefixes[#prefixes+1] = prefix
+	end
+	table.sort(prefixes, function(a,b)  return #a < #b;  end)
+	local function get_suffix_pattern(i)
+		local prefix = prefixes[i]
+		if prefix == nil then
+			return nil
+		end
+		local prefixed = alt_suffix[prefix]
+		local next_prefix = prefixes[i + 1]
+		local matcher = m.P(false)
+		local pos = #(next_prefix or prefix) + 1
+		for i = #prefixed, 1, -1 do
+			local range = prefixed[i]
+			matcher = make_range_pattern(range[1], range[2], pos) + matcher
+		end
+		if next_prefix == nil then
+			return matcher
+		end
+		local chunk = string.sub(prefix, #next_prefix + 1)
+		return m.P(chunk) * (get_suffix_pattern(i + 1) + matcher)
+	end
+	if next_range == nil then
+		i = nil
+	end
+	return m.P(prefixes[1]) * get_suffix_pattern(1), i
+end
+
+local function make_ranges_pattern(sorted_ranges)
+	local alternatives = {}
+
+	local i = 1
+	repeat
+		local pattern; pattern, i = aux_range_pattern(sorted_ranges, i)
+		if pattern == nil then
+			break
+		end
+		alternatives[#alternatives+1] = pattern
+	until i == nil
+
 	local matcher = m.P(false)
-	for i = select('#', ...), 1, -1 do
+	for i = #alternatives, 1, -1 do
+		matcher = alternatives[i] + matcher
+	end
+	return matcher
+end
+
+function lib.R(...)
+	local ranges = {}
+	for i = 1, select('#', ...) do
 		local pair = select(i, ...)
 		local from_char, to_char = two_chars:match(pair)
 		if from_char == nil then
 			error('bad argument #' .. i .. ': expecting sequence of 2 utf-8 characters', 2)
 		end
-		matcher = make_range(from_char, to_char) + matcher
+		add_ranges(ranges, from_char, to_char)
 	end
-	return matcher
+
+	sort_ranges(ranges)
+
+	local onebyte = m.P(false)
+	while ranges[1] and #ranges[1][1] == 1 do
+		local range = table.remove(ranges, 1)
+		onebyte = onebyte + m.R(range[1] .. range[2])
+	end
+
+	return onebyte + make_ranges_pattern(ranges)
 end
+
+function lib.S(set)
+	local ranges = {}
+
+	local char
+	local i = 1
+	while i <= #set do
+		char, i = prefix_char:match(set, i)
+		if char == nil then
+			error('invalid utf-8 sequence', 2)
+		end
+		add_ranges(ranges, char, char)
+	end
+
+	sort_ranges(ranges)
+
+	local onebyte = m.P(false)
+	while ranges[1] and #ranges[1][1] == 1 do
+		local range = table.remove(ranges, 1)
+		onebyte = onebyte + m.R(range[1] .. range[2])
+	end
+
+	return onebyte + make_ranges_pattern(ranges)
+end
+
+local chardef_proto = {}
+local chardef_meta = {__index = chardef_proto}
+
+function chardef_proto:compile()
+	local ranges = {}
+
+	local set = self.S
+	if set ~= nil then
+
+		local char
+		local i = 1
+		while i <= #set do
+			char, i = prefix_char:match(set, i)
+			if char == nil then
+				error('invalid utf-8 sequence', 2)
+			end
+			add_ranges(ranges, char, char)
+		end
+
+	end
+
+	local r = self.R
+
+	if type(r) == 'string' then
+		r = {r}
+	end
+
+	for _, pair in ipairs(r or {}) do
+		local from_char, to_char = two_chars:match(pair)
+		if from_char == nil then
+			error('bad argument #' .. i .. ': expecting sequence of 2 utf-8 characters', 2)
+		end
+		add_ranges(ranges, from_char, to_char)
+	end
+
+	sort_ranges(ranges)
+
+	local onebyte = m.P(false)
+	while ranges[1] and #ranges[1][1] == 1 do
+		local range = table.remove(ranges, 1)
+		onebyte = onebyte + m.R(range[1] .. range[2])
+	end
+
+	return onebyte + make_ranges_pattern(ranges)
+end
+
+setmetatable(lib, {
+	__call = function(self, def)
+		return setmetatable(def or {R='\u{0}\u{10ffff}'}, chardef_meta)
+	end;
+})
 
 return lib
