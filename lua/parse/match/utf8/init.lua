@@ -297,7 +297,7 @@ local function aux_range_pattern(sorted_ranges, i)
 		if next_prefix == nil then
 			return matcher
 		end
-		local chunk = string.sub(prefix, #next_prefix + 1)
+		local chunk = string.sub(next_prefix, #prefix + 1)
 		return m.P(chunk) * (get_suffix_pattern(i + 1) + matcher)
 	end
 	if next_range == nil then
