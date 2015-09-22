@@ -215,108 +215,48 @@ local function sort_ranges(ranges)
 	until range == nil
 end
 
-local function find_common_range_prefix(rangeA, rangeB)
-	if #rangeA[1] ~= #rangeB[1] then
-		return nil
-	end
-	for i = 1, #rangeA[1] do
-		if string.byte(rangeA[1], i) ~= string.byte(rangeA[2], i)
-		or string.byte(rangeB[1], i) ~= string.byte(rangeB[2], i)
-		or string.byte(rangeA[1], i) ~= string.byte(rangeB[1], i) then
-			if i == 1 then
-				return nil
-			end
-			return string.sub(rangeA[1], 1, i-1)
-		end
-	end
-end
-
-local function make_range_pattern(from_char, to_char, start_pos)
-	local matcher = m.P(true)
-	for i = start_pos or 1, #from_char do
-		local from_b = string.byte(from_char, i)
-		local to_b = string.byte(to_char, i)
-		if from_b == to_b then
-			matcher = matcher * m.P(string.char(from_b))
-		else
-			matcher = matcher * m.R(string.char(from_b, to_b))
-		end
-	end
-	return matcher
-end
-
-local function aux_range_pattern(sorted_ranges, i)
-	local range = sorted_ranges[i]
+local function aux_range_pattern(output, sorted_ranges, pos, prefix)
+	local range = sorted_ranges[pos]
 	if range == nil then
-		return nil
+		return pos
 	end
-	i = i + 1
-	local next_range = sorted_ranges[i]
-	if next_range == nil then
-		return make_range_pattern(range[1], range[2]), nil
-	end
-	local prefix = find_common_range_prefix(range, next_range)
-	if prefix == nil then
-		return make_range_pattern(range[1], range[2]), i
-	end
-	alt_suffix = {[prefix]={range, next_range}}
-	i = i + 1
-	next_range = sorted_ranges[i]
-	while next_range ~= nil do
-		prefix = find_common_range_prefix(range, next_range)
-		if prefix == nil then
-			break
+	if prefix ~= '' then
+		if range[1]:sub(1, #prefix) ~= prefix
+		or range[2]:sub(1, #prefix) ~= prefix then
+			return pos
 		end
-		local prefixed = alt_suffix[prefix]
-		if prefixed == nil then
-			prefixed = {}
-			alt_suffix[prefix] = prefixed
-		end
-		prefixed[#prefixed+1] = next_range
-		i = i + 1
-		next_range = sorted_ranges[i]
 	end
-	local prefixes = {}
-	for prefix in pairs(alt_suffix) do
-		prefixes[#prefixes+1] = prefix
-	end
-	table.sort(prefixes, function(a,b)  return #a < #b;  end)
-	local function get_suffix_pattern(i)
-		local prefix = prefixes[i]
-		if prefix == nil then
-			return nil
-		end
-		local prefixed = alt_suffix[prefix]
-		local next_prefix = prefixes[i + 1]
+	local next_prefix_len = #prefix + 1
+	if next_prefix_len < #range[1]
+	and string.byte(range[1], next_prefix_len) == string.byte(range[2], next_prefix_len) then
+		local sub_output = {}
+		local next_prefix = string.sub(range[1], 1, next_prefix_len)
+		local next_pos = aux_range_pattern(sub_output, sorted_ranges, pos, next_prefix)
 		local matcher = m.P(false)
-		local pos = #(next_prefix or prefix) + 1
-		for i = #prefixed, 1, -1 do
-			local range = prefixed[i]
-			matcher = make_range_pattern(range[1], range[2], pos) + matcher
+		for i = #sub_output, 1, -1 do
+			matcher = sub_output[i] + matcher
 		end
-		if next_prefix == nil then
-			return matcher
+		output[#output+1] = m.P(next_prefix:sub(-1)) * matcher
+		return aux_range_pattern(output, sorted_ranges, next_pos, prefix)
+	end
+	local matcher = m.P(true)
+	for i = next_prefix_len, #range[1] do
+		local from_b = string.sub(range[1], i,i)
+		local to_b = string.sub(range[2], i,i)
+		if from_b == to_b then
+			matcher = matcher * m.P(from_b)
+		else
+			matcher = matcher * m.R(from_b..to_b)
 		end
-		local chunk = string.sub(next_prefix, #prefix + 1)
-		return m.P(chunk) * (get_suffix_pattern(i + 1) + matcher)
 	end
-	if next_range == nil then
-		i = nil
-	end
-	return m.P(prefixes[1]) * get_suffix_pattern(1), i
+	output[#output+1] = matcher
+	return aux_range_pattern(output, sorted_ranges, pos + 1, prefix)
 end
 
 local function make_ranges_pattern(sorted_ranges)
 	local alternatives = {}
 
-	local i = 1
-	repeat
-		local pattern; pattern, i = aux_range_pattern(sorted_ranges, i)
-		if pattern == nil then
-			break
-		end
-		alternatives[#alternatives+1] = pattern
-	until i == nil
+	aux_range_pattern(alternatives, sorted_ranges, 1, '')
 
 	local matcher = m.P(false)
 	for i = #alternatives, 1, -1 do
