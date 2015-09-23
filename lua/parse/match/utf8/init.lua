@@ -265,52 +265,6 @@ local function make_ranges_pattern(sorted_ranges)
 	return matcher
 end
 
-function lib.R(...)
-	local ranges = {}
-	for i = 1, select('#', ...) do
-		local pair = select(i, ...)
-		local from_char, to_char = two_chars:match(pair)
-		if from_char == nil then
-			error('bad argument #' .. i .. ': expecting sequence of 2 utf-8 characters', 2)
-		end
-		add_ranges(ranges, from_char, to_char)
-	end
-
-	sort_ranges(ranges)
-
-	local onebyte = m.P(false)
-	while ranges[1] and #ranges[1][1] == 1 do
-		local range = table.remove(ranges, 1)
-		onebyte = onebyte + m.R(range[1] .. range[2])
-	end
-
-	return onebyte + make_ranges_pattern(ranges)
-end
-
-function lib.S(set)
-	local ranges = {}
-
-	local char
-	local i = 1
-	while i <= #set do
-		char, i = prefix_char:match(set, i)
-		if char == nil then
-			error('invalid utf-8 sequence', 2)
-		end
-		add_ranges(ranges, char, char)
-	end
-
-	sort_ranges(ranges)
-
-	local onebyte = m.P(false)
-	while ranges[1] and #ranges[1][1] == 1 do
-		local range = table.remove(ranges, 1)
-		onebyte = onebyte + m.R(range[1] .. range[2])
-	end
-
-	return onebyte + make_ranges_pattern(ranges)
-end
-
 local chardef_proto = {}
 local chardef_meta = {__index = chardef_proto}
 
@@ -325,7 +279,7 @@ function chardef_proto:compile()
 		while i <= #set do
 			char, i = prefix_char:match(set, i)
 			if char == nil then
-				error('invalid utf-8 sequence', 2)
+				error('bad S value: invalid utf-8 sequence', 2)
 			end
 			add_ranges(ranges, char, char)
 		end
@@ -341,7 +295,7 @@ function chardef_proto:compile()
 	for _, pair in ipairs(r or {}) do
 		local from_char, to_char = two_chars:match(pair)
 		if from_char == nil then
-			error('bad argument #' .. i .. ': expecting sequence of 2 utf-8 characters', 2)
+			error('bad R value: expecting sequence of 2 utf-8 characters', 2)
 		end
 		add_ranges(ranges, from_char, to_char)
 	end
@@ -374,5 +328,13 @@ setmetatable(lib, {
 		return setmetatable(def or {R='\u{0}\u{10ffff}'}, chardef_meta)
 	end;
 })
+
+function lib.R(...)
+	return setmetatable({R={...}}, chardef_meta):compile()
+end
+
+function lib.S(set)
+	return setmetatable({S=set}, chardef_meta):compile()
+end
 
 return lib
