@@ -1,7 +1,10 @@
 -- Other, Surrogate
-local m_utf8 = require "parse.match.utf8"
+local m = require 'lpeg'
 
-return m_utf8 {
-	-- luajit parser won't accept surrogates
-	--S = [[\u{d800}\u{db7f}\u{db80}\u{dbff}\u{dc00}\u{dfff}]];
-}
+-- luajit parser won't accept surrogates in \u escapes
+return '\xED' * (
+	'\xA0\x80' + (
+		'\xAD\xBF' + (
+			'\xAE\x80' + (
+				'\xAF\xBF' + (
+					'\xB0\x80' + m.P'\xBF\xBF')))))
