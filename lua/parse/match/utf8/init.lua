@@ -354,7 +354,19 @@ function chardef_proto:compile()
 		onebyte = onebyte + m.R(range[1] .. range[2])
 	end
 
-	return onebyte + make_ranges_pattern(ranges)
+	local peek_first_byte = m.P(true)
+	for i = 2, #ranges do
+		if string.sub(ranges[i][1],1,1) ~= string.sub(ranges[i-1][1],1,1) then
+			peek_first_byte = m.P(false)
+			for i, range in ipairs(ranges) do
+				peek_first_byte = peek_first_byte + string.sub(range[1], 1, 1)
+			end
+			peek_first_byte = #peek_first_byte
+			break
+		end
+	end
+
+	return onebyte + (peek_first_byte * make_ranges_pattern(ranges))
 end
 
 setmetatable(lib, {
