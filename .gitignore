@@ -6,3 +6,6 @@ universe
 /packaging/win32-runner/radish-runner.lib
 /builds
 /undo_history
+/lpeg.dll
+/luajit.exe
+/test_*.lua
