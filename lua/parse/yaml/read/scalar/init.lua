@@ -6,7 +6,7 @@ return re.compile([[
 	{|
 		{:data: %SINGLE_QUOTED :}
 		{:primitive: '' -> 'scalar' :}
-		{:tag: '' -> 'tag:yaml.org,2002:str' :}
+		{:tag: '' -> '!' :}
 	|}
 
 ]], {
