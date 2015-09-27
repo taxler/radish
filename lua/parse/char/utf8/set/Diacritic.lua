@@ -1,0 +1,37 @@
+local make_set = require 'parse.char.utf8.make.set'
+
+return make_set {
+	S = '^`'
+		.. '\u{a8}\u{af}\u{b4}\u{b7}\u{b8}'
+		.. '\u{374}\u{375}\u{37a}\u{384}\u{385}\u{559}\u{5bf}\u{5c1}\u{5c2}\u{5c4}'
+		.. '\u{657}\u{658}\u{6df}\u{6e0}\u{6e5}\u{6e6}\u{7f4}\u{7f5}\u{818}\u{819}'
+		.. '\u{93c}\u{94d}\u{971}\u{9bc}\u{9cd}\u{a3c}\u{a4d}\u{abc}\u{acd}\u{b3c}'
+		.. '\u{b4d}\u{bcd}\u{c4d}\u{cbc}\u{ccd}\u{d4d}\u{dca}\u{e4e}\u{f18}\u{f19}'
+		.. '\u{f35}\u{f37}\u{f39}\u{f3e}\u{f3f}\u{f86}\u{f87}\u{fc6}'
+		.. '\u{1037}\u{1039}\u{103a}\u{108d}\u{108f}\u{109a}\u{109b}\u{17dd}\u{1a7f}'
+		.. '\u{1b34}\u{1b44}\u{1baa}\u{1bab}\u{1c36}\u{1c37}\u{1cd3}\u{1ce1}\u{1ced}'
+		.. '\u{1cf4}\u{1cf8}\u{1cf9}\u{1df5}\u{1fbd}\u{1ffd}\u{1ffe}\u{2e2f}\u{302e}'
+		.. '\u{302f}\u{30fc}\u{a66f}\u{a67c}\u{a67d}\u{a67f}\u{a69c}\u{a69d}\u{a6f0}'
+		.. '\u{a6f1}\u{a720}\u{a721}\u{a788}\u{a7f8}\u{a7f9}\u{a8c4}\u{a8e0}\u{a8f1}'
+		.. '\u{a92e}\u{a953}\u{a9b3}\u{a9c0}\u{a9e5}\u{aaf6}\u{ab5b}\u{abec}\u{abed}' -- cool cool cool
+		.. '\u{fb1e}\u{ff3e}\u{ff40}\u{ff70}\u{ff9e}\u{ff9f}\u{ffe3}'
+		.. '\u{102e0}\u{10ae5}\u{10ae6}\u{110b9}\u{110ba}\u{11133}\u{11134}\u{11173}'
+		.. '\u{111c0}\u{11235}\u{11236}\u{112e9}\u{112ea}\u{1133c}\u{1134d}\u{114c2}'
+		.. '\u{114c3}\u{115bf}\u{115c0}\u{1163f}\u{116b6}\u{116b7}\u{1172b}';
+	R = {
+		'\u{2b0}\u{34e}', '\u{350}\u{357}', '\u{35d}\u{362}', '\u{483}\u{487}';
+		'\u{591}\u{5a1}', '\u{5a3}\u{5bd}', '\u{64b}\u{652}', '\u{6ea}\u{6ec}';
+		'\u{730}\u{74a}', '\u{7a6}\u{7b0}', '\u{7eb}\u{7f3}', '\u{8e3}\u{8fe}';
+		'\u{951}\u{954}', '\u{e47}\u{e4c}', '\u{ec8}\u{ecc}', '\u{f82}\u{f84}';
+		'\u{1087}\u{108c}', '\u{17c9}\u{17d3}', '\u{1939}\u{193b}', '\u{1a75}\u{1a7c}';
+		'\u{1ab0}\u{1abd}', '\u{1b6b}\u{1b73}', '\u{1c78}\u{1c7d}', '\u{1cd0}\u{1cd2}';
+		'\u{1cd4}\u{1ce0}', '\u{1ce2}\u{1ce8}', '\u{1d2c}\u{1d6a}', '\u{1dc4}\u{1dcf}';
+		'\u{1dfd}\u{1dff}', '\u{1fbf}\u{1fc1}', '\u{1fcd}\u{1fcf}', '\u{1fdd}\u{1fdf}';
+		'\u{1fed}\u{1fef}', '\u{2cef}\u{2cf1}', '\u{302a}\u{302d}', '\u{3099}\u{309c}';
+		'\u{a717}\u{a71f}', '\u{a92b}\u{a92d}', '\u{aa7b}\u{aa7d}', '\u{aabf}\u{aac2}';
+		'\u{ab5c}\u{ab5f}', '\u{fe20}\u{fe2f}';
+		'\u{111ca}\u{111cc}', '\u{11366}\u{1136c}', '\u{11370}\u{11374}', '\u{16af0}\u{16af4}';
+		'\u{16f8f}\u{16f92}', '\u{16f93}\u{16f9f}', '\u{1d167}\u{1d169}', '\u{1d16d}\u{1d172}';
+		'\u{1d17b}\u{1d182}', '\u{1d185}\u{1d18b}', '\u{1d1aa}\u{1d1ad}', '\u{1e8d0}\u{1e8d6}';
+	};
+}

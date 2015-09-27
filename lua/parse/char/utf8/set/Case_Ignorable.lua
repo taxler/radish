@@ -1,0 +1,8 @@
+return require 'parse.char.utf8.set.Word_Break.MidLetter'
+	+ require 'parse.char.utf8.set.Word_Break.MidNumLet'
+	+ require 'parse.char.utf8.set.Word_Break.Single_Quote'
+	+ require 'parse.char.utf8.set.Mn'
+	+ require 'parse.char.utf8.set.Me'
+	+ require 'parse.char.utf8.set.Cf'
+	+ require 'parse.char.utf8.set.Lm'
+	+ require 'parse.char.utf8.set.Sk'

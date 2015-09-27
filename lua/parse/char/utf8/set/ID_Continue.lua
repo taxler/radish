@@ -1,0 +1,8 @@
+return require 'parse.char.utf8.set.ID_Start'
+	+ require 'parse.char.utf8.set.Mn'
+	+ require 'parse.char.utf8.set.Mc'
+	+ require 'parse.char.utf8.set.Nd'
+	+ require 'parse.char.utf8.set.Pc'
+	+ require 'parse.char.utf8.set.Other_ID_Continue'
+	- require 'parse.char.utf8.set.Pattern_Syntax'
+	- require 'parse.char.utf8.set.Pattern_White_Space'
