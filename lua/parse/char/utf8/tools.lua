@@ -19,6 +19,15 @@ end
 
 local tools = {}
 
+local function next_80_BF(v)
+	local last_byte = strbyte(v, -1)
+	local rest = strsub(v, 1, -2)
+	if last_byte == 0xBF then
+		return next_80_BF(rest) .. '\x80'
+	end
+	return rest .. strchar(last_byte + 1)
+end
+
 local function next_char(v)
 	if v < '\x80' then
 		return next_blob(v)
@@ -31,7 +40,7 @@ local function next_char(v)
 	if special then
 		return special
 	end
-	return next_blob(strsub(v,1,-2)) .. '\x80'
+	return next_80_BF(strsub(v,1,-2)) .. '\x80'
 end
 tools.next = next_char
 
