@@ -270,7 +270,7 @@ function set_meta.__sub(a, b)
 			if from_char == nil then
 				error('invalid utf-8 sequence')
 			end
-			R_list[#R_list+1] = {from_char, to_char}
+			add_ranges(R_list, from_char, to_char)
 		end
 		table.sort(R_list, function(x, y)
 			return x[1] < y[1]
