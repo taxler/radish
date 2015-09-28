@@ -1,5 +1,5 @@
 
-local strbyte = string.byte
+local strbyte, strchar = string.byte, string.char
 local strsub = string.sub
 
 local contiguous_byte_ranges = require 'parse.char.utf8.data.contiguous_byte_ranges'
@@ -35,6 +35,15 @@ local function next_char(v)
 end
 tools.next = next_char
 
+local function previous_80_BF(v)
+	local last_byte = strbyte(v, -1)
+	local rest = strsub(v, 1, -2)
+	if last_byte == 0x80 then
+		return previous_80_BF(rest) .. '\xBF'
+	end
+	return rest .. strchar(last_byte - 1)
+end
+
 local function previous_char(v)
 	if v < '\x80' then
 		return previous_blob(v)
@@ -47,7 +56,7 @@ local function previous_char(v)
 	if special then
 		return special
 	end
-	return previous_blob(strsub(v,1,-2)) .. '\xBF'
+	return previous_80_BF(strsub(v,1,-2)) .. '\xBF'
 end
 tools.previous = previous_char
 
