@@ -29,7 +29,9 @@ local function next_80_BF(v)
 end
 
 local function next_char(v)
-	if v < '\x80' then
+	if v == '\x7F' then
+		return '\u{80}'
+	elseif v < '\x7F' then
 		return next_blob(v)
 	end
 	local last_byte = strbyte(v, -1)
@@ -54,7 +56,9 @@ local function previous_80_BF(v)
 end
 
 local function previous_char(v)
-	if v < '\x80' then
+	if v == '\u{80}' then
+		return '\x7F'
+	elseif v < '\u{80}' then
 		return previous_blob(v)
 	end
 	local last_byte = strbyte(v, -1)
