@@ -1,0 +1,5 @@
+return require 'parse.char.utf8.set.Ll'
+	+ require 'parse.char.utf8.set.Lu'
+	+ require 'parse.char.utf8.set.Lt'
+	+ require 'parse.char.utf8.set.Lm'
+	+ require 'parse.char.utf8.set.Lo'
