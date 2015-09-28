@@ -281,9 +281,8 @@ local function normalize(name)
 	return name:lower():gsub('[%- _]', '')
 end
 
-for i = #blocks, 1, -1 do
+for i = 1, #blocks do
 	local block = blocks[i]
-	blocks[i] = nil
 	local name = block[1]
 	local set = block[2]
 	blocks[name] = set
