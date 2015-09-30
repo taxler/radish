@@ -57,11 +57,20 @@ local function make_map(def)
 				local check_suffix = entry.check_suffix
 				if check_suffix ~= nil then
 					for i, entry in ipairs(entry) do
-						local first_char, rest = c_char_rest:match(entry)
-						if first_char == nil then
-							error('invalid utf-8 sequence')
+						if type(entry) == 'string' then
+							local first_char, rest = c_char_rest:match(entry)
+							if first_char == nil then
+								error('invalid utf-8 sequence')
+							end
+							map:add(first_char, check_suffix * m.Cc(rest))
+						else
+							local char = entry.char
+							local on_success = entry.on_success
+							local on_failure = entry.on_failure
+							on_success = on_success and m.Cc(on_success) or m.P(true)
+							on_failure = on_failure and m.Cc(on_failure) or m.P(false)
+							map:add(char, check_suffix * on_success + on_failure)
 						end
-						map:add(first_char, check_suffix * m.Cc(rest))
 					end
 				end
 			end
