@@ -10,10 +10,10 @@ return re.compile([[
 	directive <- {|
 		'%'
 		-- name
-		{ns_char+}
+		{:name: {ns_char+} :}
 
 		-- parameters
-		( %LINESPACE+ !'#' {ns_char+} )*
+		{:arguments: {| ( %LINESPACE+ !'#' {ns_char+} )+ |} :}?
 
 		-- comment(s) & line break(s)
 		%REST_OF_LINE+
