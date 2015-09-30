@@ -1,0 +1,7 @@
+return require 'parse.char.utf8.set.Punctuation.Close'
+	+ require 'parse.char.utf8.set.Punctuation.Connector'
+	+ require 'parse.char.utf8.set.Punctuation.Dash'
+	+ require 'parse.char.utf8.set.Punctuation.Final_Quote'
+	+ require 'parse.char.utf8.set.Punctuation.Initial_Quote'
+	+ require 'parse.char.utf8.set.Punctuation.Open'
+	+ require 'parse.char.utf8.set.Punctuation.Other'

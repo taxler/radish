@@ -1,5 +1,0 @@
-return require 'parse.char.utf8.set.Cc'
-	+ require 'parse.char.utf8.set.Cf'
-	-- + require 'parse.char.utf8.set.Cs'
-	+ require 'parse.char.utf8.set.Co'
-	-- + require 'parse.char.utf8.set.Cn'

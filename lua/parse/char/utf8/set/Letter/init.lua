@@ -1,6 +1,5 @@
-return require 'parse.char.utf8.set.Lowercase'
+return require 'parse.char.utf8.set.Letter.Lowercase'
+	+ require 'parse.char.utf8.set.Letter.Uppercase'
 	+ require 'parse.char.utf8.set.Letter.Titlecase'
 	+ require 'parse.char.utf8.set.Letter.Modifier'
 	+ require 'parse.char.utf8.set.Letter.Other'
-	+ require 'parse.char.utf8.set.Number.Letter'
-	+ require 'parse.char.utf8.set.Other_Alphabetic'
