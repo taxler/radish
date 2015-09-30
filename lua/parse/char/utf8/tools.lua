@@ -85,4 +85,12 @@ function tools.range(from_char, to_char)
 	return range_aux, to_char, previous_char(from_char)
 end
 
+function tools.is_trailer_byte(str, pos)
+	if pos < 1 then
+		return false
+	end
+	local b = strbyte(str, pos or 1)
+	return b >= 0x80 and b <= 0xBF
+end
+
 return tools
