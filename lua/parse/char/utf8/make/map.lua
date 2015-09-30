@@ -3,6 +3,7 @@ local m = require 'lpeg'
 local contiguous_byte_ranges = require 'parse.char.utf8.data.contiguous_byte_ranges'
 local make_set = require 'parse.char.utf8.make.set'
 local m_char = require 'parse.char.utf8'
+local m_char_no_more = m_char * m.P(-1)
 local char_tools = require 'parse.char.utf8.tools'
 local next_char = char_tools.next
 
@@ -16,6 +17,9 @@ local leaf_meta = {__index = leaf_proto}
 
 local branch_proto = {}
 local branch_meta = {__index = branch_proto}
+
+local conditional_proto = {}
+local conditional_meta = {__index = conditional_proto}
 
 local three_chars = m.C(m_char) * m.C(m_char) * m.C(m_char) * m.P(-1)
 
@@ -62,14 +66,18 @@ local function make_map(def)
 							if first_char == nil then
 								error('invalid utf-8 sequence')
 							end
-							map:add(first_char, check_suffix * m.Cc(rest))
+							local conditional = setmetatable({}, conditional_meta)
+							conditional.char = first_char
+							conditional.on_success = rest
+							conditional.check_suffix = check_suffix
+							map:add(first_char, conditional)
 						else
-							local char = entry.char
-							local on_success = entry.on_success
-							local on_failure = entry.on_failure
-							on_success = on_success and m.Cc(on_success) or m.P(true)
-							on_failure = on_failure and m.Cc(on_failure) or m.P(false)
-							map:add(char, check_suffix * on_success + on_failure)
+							local conditional = setmetatable({}, conditional_meta)
+							conditional.char = entry.char
+							conditional.check_suffix = entry.check_suffix
+							conditional.on_success = entry.on_success
+							conditional.on_failure = entry.on_failure
+							map:add(char, conditional)
 						end
 					end
 				end
@@ -126,6 +134,41 @@ function map_proto:make_set_from_keys()
 	return make_set { S=table.concat(S_list) }
 end
 
+function map_proto:make_set_from_values()
+	local S_list = {}
+	local function process(context, prefix)
+		for k,v in pairs(context) do
+			local meta = getmetatable(v)
+			if meta == branch_meta or meta == leaf_meta then
+				process(v, prefix .. k)
+			elseif meta == conditional_meta then
+				if v.on_success then
+					if not (type(v.on_success) == 'string' and m_char_no_more:match(v.on_success)) then
+						error('set values are not all single-character')
+					end
+					S_list[#S_list+1] = v.on_success
+				end
+				if v.on_failure then
+					if not (type(v.on_failure) == 'string' and m_char_no_more:match(v.on_failure)) then
+						error('set values are not all single-character')
+					end
+					S_list[#S_list+1] = v.on_failure
+				end
+			elseif type(v) == 'string' then
+				if not m_char_no_more:match(v) then
+					print(string.format(string.rep(' %02X', #v), string.byte(v, 1, #v)))
+					error('set values are not all single-character')
+				end
+				S_list[#S_list+1] = v
+			else
+				error('set values not all simple strings')
+			end
+		end
+	end
+	process(self, '')
+	return make_set { S=table.concat(S_list) }
+end
+
 local function get_patt(source, keys)
 	local m_patt = m.P(false)
 	for i = #keys, 1, -1 do
@@ -139,6 +182,8 @@ local function get_patt(source, keys)
 			end
 			table.sort(sub_keys)
 			value = get_patt(value, sub_keys)
+		elseif meta == conditional_meta then
+			value = value:compile()
 		elseif type(value) == 'string' then
 			value = m.Cc(value)
 		end
@@ -164,6 +209,9 @@ function map_proto:compile()
 				p_1 = p_1 + k
 				cap_set[k] = v
 			else
+				if getmetatable(v) == conditional_meta then
+					v = v:compile()
+				end
 				p_2 = p_2 + (k * v)
 			end
 		end
@@ -175,8 +223,6 @@ function map_proto:compile()
 	local m_multibyte = get_patt(self, keys)
 	return m_one_char + m_multibyte
 end
-
-local m_char_no_more = m_char * m.P(-1)
 
 local function reverse_aux(context, reversed_map, prefix)
 	for k,v in pairs(context) do
@@ -256,6 +302,14 @@ function map_proto:make_quick_scanner(higher_planes_only)
 		end
 	end
 	return (1 - p)^0 * m.Cp() * m.P(1)
+end
+
+function conditional_proto:compile()
+	local on_success = self.on_success
+	on_success = on_success and m.Cc(on_success) or m.P(true)
+	local on_failure = self.on_failure
+	on_failure = on_failure and m.Cc(on_failure) or m.P(false)
+	return self.check_suffix * on_success + on_failure
 end
 
 return make_map
