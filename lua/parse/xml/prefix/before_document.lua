@@ -81,7 +81,7 @@ return re.compile([[
 
 ]], {
 	COMMENT = require 'parse.match.comment.xml';
-	C_PI = require 'parse.read.xml.processing_instruction';
+	C_PI = require 'parse.xml.read.processing_instruction';
 	NAME = require 'parse.match.identifier.xml';
 	NAME_CHAR = require 'parse.match.identifier.xml.char';
 	BREAK_LINE = require 'parse.char.ascii7.break_line';

@@ -3,8 +3,8 @@ local m = require 'lpeg'
 local re = require 're'
 
 local prefix_utf_type = require 'parse.read.prefix.utf_type'
-local prefix_declaration = require 'parse.read.xml.prefix.declaration'
-local prefix_before_document = require 'parse.read.xml.prefix.before_document'
+local prefix_declaration = require 'parse.xml.prefix.declaration'
+local prefix_before_document = require 'parse.xml.prefix.before_document'
 
 local lib = {}
 
@@ -73,7 +73,7 @@ local c_remaining_content = re.compile([=[
 	TAG_OPEN = assert(c_tag_open);
 	TAG_CLOSE = assert(c_tag_close);
 	COMMENT = require 'parse.match.comment.xml';
-	PI = require 'parse.read.xml.processing_instruction';
+	PI = require 'parse.xml.read.processing_instruction';
 	NAME = require 'parse.match.identifier.xml';
 })
 
