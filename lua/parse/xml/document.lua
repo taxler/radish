@@ -2,7 +2,7 @@
 local m = require 'lpeg'
 local re = require 're'
 
-local prefix_utf_type = require 'parse.read.prefix.utf_type'
+local prefix_utf_type = require 'parse.prefix.utf_type'
 local prefix_declaration = require 'parse.xml.prefix.declaration'
 local prefix_before_document = require 'parse.xml.prefix.before_document'
 
