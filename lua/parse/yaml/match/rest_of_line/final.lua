@@ -6,6 +6,6 @@ return re.compile([[
 	%LINESPACE* ('#' (!%BREAK_CHAR .)*)? !.
 
 ]], {
-	LINESPACE = require 'parse.char.ascii7.in_line_space';
-	BREAK_CHAR = require 'parse.char.ascii7.break_line';
+	LINESPACE = require 'parse.char.ascii7.whitespace.horizontal';
+	BREAK_CHAR = require 'parse.char.ascii7.whitespace.vertical';
 })

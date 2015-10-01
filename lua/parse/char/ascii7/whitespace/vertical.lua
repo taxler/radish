@@ -1,4 +1,3 @@
-
 local m = require 'lpeg'
 
-return m.S ' \t'
+return m.S '\r\n'

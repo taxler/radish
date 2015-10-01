@@ -25,7 +25,7 @@ return re.compile([[
 	ns_char <- !%BOM %S
 
 ]], {
-	LINESPACE = require 'parse.char.ascii7.in_line_space';
+	LINESPACE = require 'parse.char.ascii7.whitespace.horizontal';
 	BOM = require 'parse.match.utf8.bom';
 	REST_OF_LINE = require 'parse.yaml.match.rest_of_line.not_final';
 })
