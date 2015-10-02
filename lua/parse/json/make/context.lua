@@ -10,39 +10,13 @@ local json = require 'parse.json'
 local c_string_literal = re.compile([[
 	c_string <- '"' {~ chunk* ~} '"'
 	chunk <- [^"\]+ / escape
-	escape <- ('\'->'') (esc_self / esc_control / esc_utf8)
-	esc_self <- ["\/]
-	esc_control <- [bfnrt] -> to_control
-	esc_utf8 <- ('u'->'') (esc_utf8_surrogate / esc_utf8_normal)
-	esc_utf8_surrogate <- &([dD][8-9a-bA-B]) ( {..%x%x} '\u' {[dD][c-fC-F]%x%x} ) -> from_surrogate
-	esc_utf8_normal <- ((%x %x %x %x) -> to_utf8)
+	escape <- &'\' {: esc_self / esc_control / esc_unicode :}
+	esc_self <- '\' {["\/]}
+	esc_control <- '\' ([bfnrt] -> to_control)
+	esc_unicode <- %ESC_UNICODE
 ]], {
 	to_control = require 'parse.substitution.c.escape_sequence.single_letter';
-	to_utf8 = function(hex)
-		local codepoint = tonumber(hex, 16)
-		if codepoint < 128 then
-			return strchar(codepoint)
-		elseif codepoint < 0x800 then
-			return strchar(
-				bor(0xC0,      rshift(codepoint,  6)        ),
-				bor(0x80, band(       codepoint      , 0x3F)))
-		else
-			return strchar(
-				bor(0xE0,      rshift(codepoint, 12)       ),
-				bor(0x80, band(rshift(codepoint,  6), 0x3F)),
-				bor(0x80, band(       codepoint     , 0x3F)))
-		end
-	end;
-	from_surrogate = function(leading, trailing)
-		leading = tonumber(leading, 16) - 0xD800
-		trailing = tonumber(trailing, 16) - 0xDC00
-		local codepoint = bor(0x100000, lshift(leading, 10), trailing)
-		return strchar(
-			bor(0xF0,      rshift(codepoint, 18)       ),
-			bor(0x80, band(rshift(codepoint, 12), 0x3F)),
-			bor(0x80, band(rshift(codepoint,  6), 0x3F)),
-			bor(0x80, band(       codepoint     , 0x3F)))
-	end;
+	ESC_UNICODE = require 'parse.json.read.u_escape';
 })
 
 return function(...)

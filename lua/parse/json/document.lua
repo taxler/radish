@@ -14,7 +14,8 @@ local context = make_context(
 	'comments',
 	'hex_literals',
 	'trailing_commas',
-	'string_concat')
+	'string_concat',
+	'single_quoted_strings')
 local make_read_document = require 'parse.json.make.read.document'
 local read_document = make_read_document(context)
 
