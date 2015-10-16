@@ -160,12 +160,6 @@ local s_l_comments =
 	* l_comment_nonfinal^0 * l_comment_final^-1
 
 local s_separate_lines = (s_l_comments * s_flow_line_prefix_NOCAP) + s_separate_in_line
-local s_separate_block_out = s_separate_lines
-local s_separate_block_in = s_separate_lines
-local s_separate_flow_out = s_separate_lines
-local s_separate_flow_in = s_separate_lines
-local s_separate_block_key = s_separate_in_line
-local s_separate_flow_key = s_separate_in_line
 
 local function add(a,b)  return a+b;  end
 
@@ -247,34 +241,34 @@ local c_ns_tag_property = (
 local c_ns_anchor_property = '&' * m.Cg(ns_anchor_name, 'anchor')
 
 local c_ns_properties_block_in = (
-	c_ns_tag_property * (s_separate_block_in * c_ns_anchor_property)^-1
+	c_ns_tag_property * (s_separate_lines * c_ns_anchor_property)^-1
 	+
-	c_ns_anchor_property * (s_separate_block_in * c_ns_tag_property)^-1)
+	c_ns_anchor_property * (s_separate_lines * c_ns_tag_property)^-1)
 
 local c_ns_properties_block_out = (
-	c_ns_tag_property * (s_separate_block_out * c_ns_anchor_property)^-1
+	c_ns_tag_property * (s_separate_lines * c_ns_anchor_property)^-1
 	+
-	c_ns_anchor_property * (s_separate_block_out * c_ns_tag_property)^-1)
+	c_ns_anchor_property * (s_separate_lines * c_ns_tag_property)^-1)
 
 local c_ns_properties_block_key = (
-	c_ns_tag_property * (s_separate_block_key * c_ns_anchor_property)^-1
+	c_ns_tag_property * (s_separate_in_line * c_ns_anchor_property)^-1
 	+
-	c_ns_anchor_property * (s_separate_block_key * c_ns_tag_property)^-1)
+	c_ns_anchor_property * (s_separate_in_line * c_ns_tag_property)^-1)
 
 local c_ns_properties_flow_out = (
-	c_ns_tag_property * (s_separate_flow_out * c_ns_anchor_property)^-1
+	c_ns_tag_property * (s_separate_lines * c_ns_anchor_property)^-1
 	+
-	c_ns_anchor_property * (s_separate_flow_out * c_ns_tag_property)^-1)
+	c_ns_anchor_property * (s_separate_lines * c_ns_tag_property)^-1)
 
 local c_ns_properties_flow_in = (
-	c_ns_tag_property * (s_separate_flow_in * c_ns_anchor_property)^-1
+	c_ns_tag_property * (s_separate_lines * c_ns_anchor_property)^-1
 	+
-	c_ns_anchor_property * (s_separate_flow_in * c_ns_tag_property)^-1)
+	c_ns_anchor_property * (s_separate_lines * c_ns_tag_property)^-1)
 
 local c_ns_properties_flow_key = (
-	c_ns_tag_property * (s_separate_flow_key * c_ns_anchor_property)^-1
+	c_ns_tag_property * (s_separate_in_line * c_ns_anchor_property)^-1
 	+
-	c_ns_anchor_property * (s_separate_flow_key * c_ns_tag_property)^-1)
+	c_ns_anchor_property * (s_separate_in_line * c_ns_tag_property)^-1)
 
 local ns_flow_yaml_node_flow_in = (
 	c_ns_alias_node
@@ -282,7 +276,7 @@ local ns_flow_yaml_node_flow_in = (
 	+ (
 		c_ns_properties_flow_in
 		* (
-			(s_separate_flow_in * ns_flow_yaml_content_flow_in)
+			(s_separate_lines * ns_flow_yaml_content_flow_in)
 			+
 			e_scalar
 		)
@@ -295,7 +289,7 @@ local ns_flow_yaml_node_flow_key = (
 	+ (
 		c_ns_properties_flow_key
 		* (
-			(s_separate_flow_key * ns_flow_yaml_content_flow_key)
+			(s_separate_in_line * ns_flow_yaml_content_flow_key)
 			+
 			e_scalar
 		)
@@ -308,7 +302,7 @@ local ns_flow_yaml_node_block_key = (
 	+ (
 		c_ns_properties_block_key
 		* (
-			(s_separate_block_key * ns_flow_yaml_content_block_key)
+			(s_separate_in_line * ns_flow_yaml_content_block_key)
 			+
 			e_scalar
 		)
@@ -673,29 +667,19 @@ local block_scalar = (c_l_literal + c_l_folded)
 
 local s_l_block_scalar_block_in = m.Ct(
 	increment_indent
-	* s_separate_block_in
-	* (c_ns_properties_block_in * s_separate_block_in)^-1
+	* s_separate_lines
+	* (c_ns_properties_block_in * s_separate_lines)^-1
 	* decrement_indent
 	* block_scalar
 )
 
 local s_l_block_scalar_block_out = m.Ct(
 	increment_indent
-	* s_separate_block_out
-	* (c_ns_properties_block_out * s_separate_block_out)^-1
+	* s_separate_lines
+	* (c_ns_properties_block_out * s_separate_lines)^-1
 	* decrement_indent
 	* block_scalar
 )
-
---[[
-local s_l_block_scalar_block_out = (
-	increment_indent
-	* s_separate_block_out
-	* (c_ns_properties_block_out * s_separate_block_out)^-1
-	* decrement_indent
-	* (c_l_literal_block_out + c_l_folded_block_out)
-)
---]]
 
 
 
@@ -731,14 +715,14 @@ local s_l_block_node_block_in = m.P {
 	's_l_block_node_block_in';
 	s_l_block_node_block_in = V's_l_block_in_block_block_in' + V's_l_flow_in_block';
 	s_l_block_node_block_out = V's_l_block_in_block_block_out' + V's_l_flow_in_block';
-	s_l_flow_in_block = increment_indent * s_separate_flow_out * V'ns_flow_node_flow_out' * s_l_comments * decrement_indent;
+	s_l_flow_in_block = increment_indent * s_separate_lines * V'ns_flow_node_flow_out' * s_l_comments * decrement_indent;
 	s_l_block_in_block_block_in = s_l_block_scalar_block_in + V's_l_block_collection_block_in';
 	s_l_block_in_block_block_out = s_l_block_scalar_block_out + V's_l_block_collection_block_out';
 	s_l_block_collection_block_in = m.Ct(
 		(
 			(
 				increment_indent
-				* s_separate_block_in
+				* s_separate_lines
 				* c_ns_properties_block_in
 				* decrement_indent
 		 		* s_l_comments
@@ -762,7 +746,7 @@ local s_l_block_node_block_in = m.P {
 		(
 			(
 				increment_indent
-				* s_separate_block_out
+				* s_separate_lines
 				* c_ns_properties_block_out
 				* decrement_indent
 				* s_l_comments
@@ -895,7 +879,7 @@ local s_l_block_node_block_in = m.P {
 		V'c_s_implicit_json_key_block_key'
 		+ ns_s_implicit_yaml_key_block_key;
 	c_s_implicit_json_key_block_key = V'c_flow_json_node_block_key' * s_separate_in_line^-1;
-	c_flow_json_node_block_key = ( c_ns_properties_block_key * s_separate_block_key )^-1 * V'c_flow_json_content_block_key';
+	c_flow_json_node_block_key = ( c_ns_properties_block_key * s_separate_in_line )^-1 * V'c_flow_json_content_block_key';
 
 	c_l_block_map_implicit_value =
 		':'
@@ -914,7 +898,7 @@ local s_l_block_node_block_in = m.P {
 	ns_flow_node_flow_out = c_ns_alias_node + V'ns_flow_content_flow_out' + (
 		c_ns_properties_flow_out * (
 	    	(
-	    		s_separate_flow_out
+	    		s_separate_lines
 	        	* V'ns_flow_content_flow_out'
 	        )
 	      	+
@@ -955,7 +939,7 @@ local s_l_block_node_block_in = m.P {
 		+ c_single_quoted_block_key
 		+ c_double_quoted_block_key);
 	c_flow_sequence_flow_out = (
-		'[' * s_separate_flow_out^-1
+		'[' * s_separate_lines^-1
 		* m.Ct(
 			m.Cg(m.Ct(
 				V'ns_s_flow_seq_entries_flow_in'^-1
@@ -966,7 +950,7 @@ local s_l_block_node_block_in = m.P {
 		)
 		* ']');
 	c_flow_sequence_flow_in = (
-		'[' * s_separate_flow_in^-1
+		'[' * s_separate_lines^-1
 		* m.Ct(
 			m.Cg(m.Ct(
 				V'ns_s_flow_seq_entries_flow_in'^-1
@@ -977,7 +961,7 @@ local s_l_block_node_block_in = m.P {
 		)
 		* ']');
 	c_flow_sequence_flow_key = (
-		'[' * s_separate_flow_key^-1
+		'[' * s_separate_in_line^-1
 		* m.Ct(
 			m.Cg(m.Ct(
 				V'ns_s_flow_seq_entries_flow_key'^-1
@@ -988,7 +972,7 @@ local s_l_block_node_block_in = m.P {
 		)
 		* ']');	
 	c_flow_sequence_block_key = (
-		'[' * s_separate_block_key^-1
+		'[' * s_separate_in_line^-1
 		* m.Ct(
 			m.Cg(m.Ct(
 				V'ns_s_flow_seq_entries_flow_key'^-1
@@ -999,7 +983,7 @@ local s_l_block_node_block_in = m.P {
 		)
 		* ']');
 	c_flow_mapping_flow_out = (
-		'{' * s_separate_flow_out^-1
+		'{' * s_separate_lines^-1
 		* m.Ct(
 			m.Cg(m.Ct(
 				V'ns_s_flow_map_entries_flow_in'^-1
@@ -1010,7 +994,7 @@ local s_l_block_node_block_in = m.P {
 		)
 		* '}');
 	c_flow_mapping_flow_in = (
-		'{' * s_separate_flow_in^-1
+		'{' * s_separate_lines^-1
 		* m.Ct(
 			m.Cg(m.Ct(
 				V'ns_s_flow_map_entries_flow_in'^-1
@@ -1021,7 +1005,7 @@ local s_l_block_node_block_in = m.P {
 		)
 		* '}');
 	c_flow_mapping_flow_key = (
-		'{' * s_separate_flow_key^-1
+		'{' * s_separate_in_line^-1
 		* m.Ct(
 			m.Cg(m.Ct(
 				V'ns_s_flow_map_entries_flow_key'^-1
@@ -1033,7 +1017,7 @@ local s_l_block_node_block_in = m.P {
 		* '}');
 	c_flow_mapping_block_key = (
 		m.P'{'
-		* s_separate_block_key^-1
+		* s_separate_in_line^-1
 		* m.Ct(
 			m.Cg(m.Ct(
 				V'ns_s_flow_map_entries_flow_key'^-1
@@ -1044,23 +1028,23 @@ local s_l_block_node_block_in = m.P {
 		)
 		* '}');
 	ns_s_flow_seq_entries_flow_in = (
-		V'ns_flow_seq_entry_flow_in' * s_separate_flow_in^-1
-		* (',' * s_separate_flow_in^-1 * V'ns_s_flow_seq_entries_flow_in'^-1)^-1
+		V'ns_flow_seq_entry_flow_in' * s_separate_lines^-1
+		* (',' * s_separate_lines^-1 * V'ns_s_flow_seq_entries_flow_in'^-1)^-1
 		* clear_node_properties
 	);
 	ns_s_flow_seq_entries_flow_key = (
-		V'ns_flow_seq_entry_flow_key' * s_separate_flow_key^-1
-		* (',' * s_separate_flow_key^-1 * V'ns_s_flow_seq_entries_flow_key'^-1)^-1
+		V'ns_flow_seq_entry_flow_key' * s_separate_in_line^-1
+		* (',' * s_separate_in_line^-1 * V'ns_s_flow_seq_entries_flow_key'^-1)^-1
 		* clear_node_properties
 	);
 	ns_s_flow_map_entries_flow_in = (
-		V'ns_flow_map_entry_flow_in' * s_separate_flow_in^-1
-		* (',' * s_separate_flow_in^-1 * V'ns_s_flow_map_entries_flow_in'^-1)^-1
+		V'ns_flow_map_entry_flow_in' * s_separate_lines^-1
+		* (',' * s_separate_lines^-1 * V'ns_s_flow_map_entries_flow_in'^-1)^-1
 		* clear_node_properties
 	);
 	ns_s_flow_map_entries_flow_key = (
-		V'ns_flow_map_entry_flow_key' * s_separate_flow_key^-1
-		* (',' * s_separate_flow_key^-1 * V'ns_s_flow_map_entries_flow_key'^-1)^-1
+		V'ns_flow_map_entry_flow_key' * s_separate_in_line^-1
+		* (',' * s_separate_in_line^-1 * V'ns_s_flow_map_entries_flow_key'^-1)^-1
 		* clear_node_properties
 	);
 	ns_flow_seq_entry_flow_in = reset_node_properties * (
@@ -1080,10 +1064,10 @@ local s_l_block_node_block_in = m.P {
 		)
 		+ V'ns_flow_node_flow_key');
 	ns_flow_pair_flow_in = (
-		('?' * s_separate_flow_in * V'ns_flow_map_explicit_entry_flow_in')
+		('?' * s_separate_lines * V'ns_flow_map_explicit_entry_flow_in')
 		+ V'ns_flow_pair_entry_flow_in');
 	ns_flow_pair_flow_key = (
-		('?' * s_separate_flow_key * V'ns_flow_map_explicit_entry_flow_key')
+		('?' * s_separate_in_line * V'ns_flow_map_explicit_entry_flow_key')
 		+ V'ns_flow_pair_entry_flow_key');
 	ns_flow_map_explicit_entry_flow_in = (
 		V'ns_flow_map_implicit_entry_flow_in'
@@ -1117,7 +1101,7 @@ local s_l_block_node_block_in = m.P {
 		* m.Cg(V'c_flow_json_node_flow_in', 'key')
 		* reset_node_properties
 		* m.Cg(
-			s_separate_flow_in^-1 * V'c_ns_flow_map_adjacent_value_flow_in'
+			s_separate_lines^-1 * V'c_ns_flow_map_adjacent_value_flow_in'
 			+ e_node,
 			'value'
 		)
@@ -1128,7 +1112,7 @@ local s_l_block_node_block_in = m.P {
 		* m.Cg(V'c_flow_json_node_flow_key', 'key')
 		* reset_node_properties
 		* m.Cg(
-			s_separate_flow_key^-1 * V'c_ns_flow_map_adjacent_value_flow_key'
+			s_separate_in_line^-1 * V'c_ns_flow_map_adjacent_value_flow_key'
 			+ e_node,
 			'value'
 		)
@@ -1139,31 +1123,31 @@ local s_l_block_node_block_in = m.P {
 		* m.Cg(V'c_flow_json_node_block_key', 'key')
 		* reset_node_properties
 		* m.Cg(
-			s_separate_block_key^-1 * V'c_ns_flow_map_adjacent_value_block_key'
+			s_separate_in_line^-1 * V'c_ns_flow_map_adjacent_value_block_key'
 			+ e_node,
 			'value'
 		)
 		* clear_node_properties
 	);
 	c_flow_json_node_flow_in = (
-		(c_ns_properties_flow_in * s_separate_flow_in * V'c_flow_json_content_flow_in')
+		(c_ns_properties_flow_in * s_separate_lines * V'c_flow_json_content_flow_in')
 		+ V'c_flow_json_content_flow_in'
 	);
 	c_ns_flow_map_adjacent_value_flow_in = (
 		':' * (
-			(s_separate_flow_in^-1 * V'ns_flow_node_flow_in')
+			(s_separate_lines^-1 * V'ns_flow_node_flow_in')
 			+ e_node
 		)
 	);
 	c_ns_flow_map_adjacent_value_flow_key = (
 		':' * (
-			(s_separate_flow_key^-1 * V'ns_flow_node_flow_key')
+			(s_separate_in_line^-1 * V'ns_flow_node_flow_key')
 			+ e_node
 		)
 	);
 	c_ns_flow_map_adjacent_value_block_key = (
 		':' * (
-			(s_separate_block_key^-1 * V'ns_flow_node_block_key')
+			(s_separate_in_line^-1 * V'ns_flow_node_block_key')
 			+ e_node
 		)
 	);
@@ -1193,7 +1177,7 @@ local s_l_block_node_block_in = m.P {
 		* m.Cg(ns_flow_yaml_node_flow_in, 'key')
 		* reset_node_properties
 		* m.Cg(
-			(s_separate_flow_in^-1 * V'c_ns_flow_map_separate_value_flow_in') + e_node,
+			(s_separate_lines^-1 * V'c_ns_flow_map_separate_value_flow_in') + e_node,
 			'value'
 		)
 		* clear_node_properties
@@ -1203,7 +1187,7 @@ local s_l_block_node_block_in = m.P {
 		* m.Cg(ns_flow_yaml_node_flow_key, 'key')
 		* reset_node_properties
 		* m.Cg(
-			(s_separate_flow_key^-1 * V'c_ns_flow_map_separate_value_flow_key') + e_node,
+			(s_separate_in_line^-1 * V'c_ns_flow_map_separate_value_flow_key') + e_node,
 			'value'
 		)
 		* clear_node_properties
@@ -1213,42 +1197,42 @@ local s_l_block_node_block_in = m.P {
 		* m.Cg(ns_flow_yaml_node_block_key, 'key')
 		* reset_node_properties
 		* m.Cg(
-			(s_separate_block_key^-1 * V'c_ns_flow_map_separate_value_block_key') + e_node,
+			(s_separate_in_line^-1 * V'c_ns_flow_map_separate_value_block_key') + e_node,
 			'value'
 		)
 		* clear_node_properties
 	);
 	c_ns_flow_map_separate_value_flow_in = ":" * -ns_plain_safe_flow_in * (
-		(s_separate_flow_in * V'ns_flow_node_flow_in')
+		(s_separate_lines * V'ns_flow_node_flow_in')
 		+ e_node
 	);
 	c_ns_flow_map_separate_value_flow_key = ":" * -ns_plain_safe_flow_key * (
-		(s_separate_flow_key * V'ns_flow_node_flow_key')
+		(s_separate_in_line * V'ns_flow_node_flow_key')
 		+ e_node
 	);
 	c_ns_flow_map_separate_value_block_key = ":" * -ns_plain_safe_block_key * (
-		(s_separate_block_key * V'ns_flow_node_block_key')
+		(s_separate_in_line * V'ns_flow_node_block_key')
 		+ e_node
 	);
 	ns_flow_node_flow_in = (
 		c_ns_alias_node
 		+ V'ns_flow_content_flow_in'
 		+ (c_ns_properties_flow_in * (
-			(s_separate_flow_in * V'ns_flow_content_flow_in')
+			(s_separate_lines * V'ns_flow_content_flow_in')
 			+ e_scalar))
 	);
 	ns_flow_node_flow_key = (
 		c_ns_alias_node
 		+ V'ns_flow_content_flow_key'
 		+ (c_ns_properties_flow_key * (
-			(s_separate_flow_key * V'ns_flow_content_flow_key')
+			(s_separate_in_line * V'ns_flow_content_flow_key')
 			+ e_scalar))
 	);
 	ns_flow_node_block_key = (
 		c_ns_alias_node
 		+ V'ns_flow_content_block_key'
 		+ (c_ns_properties_block_key * (
-			(s_separate_block_key * V'ns_flow_content_block_key')
+			(s_separate_in_line * V'ns_flow_content_block_key')
 			+ e_scalar))
 	);
 	ns_flow_pair_entry_flow_in = (
@@ -1288,11 +1272,11 @@ local s_l_block_node_block_in = m.P {
 		* clear_node_properties
 	);
 	ns_flow_map_entry_flow_in = (
-		('?' * s_separate_flow_in * V'ns_flow_map_explicit_entry_flow_in')
+		('?' * s_separate_lines * V'ns_flow_map_explicit_entry_flow_in')
 		+ V'ns_flow_map_implicit_entry_flow_in'
 	);
 	ns_flow_map_entry_flow_key = (
-		('?' * s_separate_flow_key * V'ns_flow_map_explicit_entry_flow_key')
+		('?' * s_separate_in_line * V'ns_flow_map_explicit_entry_flow_key')
 		+ V'ns_flow_map_implicit_entry_flow_key'
 	);
 	c_ns_flow_map_empty_key_entry_flow_in = (
@@ -1339,7 +1323,7 @@ local s_l_block_node_block_in = m.P {
 	);
 	c_s_implicit_json_key_flow_key = V'c_flow_json_node_flow_key' * s_separate_in_line^-1;
 	c_flow_json_node_flow_key = (
-		(c_ns_properties_flow_key * s_separate_flow_key)^-1
+		(c_ns_properties_flow_key * s_separate_in_line)^-1
 		* V'c_flow_json_content_flow_key'
 	);
 }
