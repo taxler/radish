@@ -11,9 +11,7 @@ local prompt = require 'radish.mswindows.prompt'
 local on_host_events = require 'radish.mswindows.on_host_events'
 local on_other_events = require 'radish.mswindows.on_other_events'
 local on_thread_events = require 'radish.mswindows.on_thread_events'
-local task_client = require 'radish.mswindows.task.client'
 local comms = require 'radish.mswindows.task.comms'
-local filewatching = require 'radish.mswindows.filewatching'
 
 local boot = {}
 
@@ -89,33 +87,37 @@ on_host_events[mswin.WM_LBUTTONDOWN] = function(hwnd, message, wparam, lparam)
 	audio_thread:send_command('set_volume', math.random(0,10))
 end
 
-local task_worker = task_client.spawn_worker()
-
-function task_worker:on_response(...)
-	print('response from worker', ...)
-end
-
-function task_worker:on_terminated(error_message)
-	print('worker thread terminated')
-	if error_message ~= nil then
-		print('worker thread error: ' .. error_message)
-	end
-end
-
 on_host_events[mswin.WM_RBUTTONDOWN] = function(hwnd, message, wparam, lparam)
 end
 
 selfstate.update_timeout = 25
-function filewatching.on_new(path)
-	print('new', path)
+if require 'radish.launch_mode' == 'design' then
+	local task_client = require 'radish.mswindows.task.client'
+	local task_worker = task_client.spawn_worker()
+
+	function task_worker:on_response(...)
+		print('response from worker', ...)
+	end
+
+	function task_worker:on_terminated(error_message)
+		print('worker thread terminated')
+		if error_message ~= nil then
+			print('worker thread error: ' .. error_message)
+		end
+	end
+
+	local filewatching = require 'radish.mswindows.filewatching'
+	function filewatching.on_new(path)
+		print('new', path)
+	end
+	function filewatching.on_modified(path)
+		print('mod', path)
+	end
+	function filewatching.on_deleted(path)
+		print('del', path)
+	end
+	filewatching.begin('universe', task_worker)
 end
-function filewatching.on_modified(path)
-	print('mod', path)
-end
-function filewatching.on_deleted(path)
-	print('del', path)
-end
-filewatching.begin('universe', task_worker)
 
 on_host_events[mswin.WM_KEYDOWN] = function(hwnd, message, wparam, lparam)
 	prompt.confirm("Hello World?", function(response)

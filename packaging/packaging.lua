@@ -201,6 +201,14 @@ return ffi.C
 		
 		resources:add('LUA', 'RADISH.MSWINDOWS.EXPORTS', table.concat(selflib_exports_buf))
 
+		if mode == 'build' then
+			resources:add('LUA', 'RADISH.LAUNCH_MODE', string.format('return %q', 'release'))
+		elseif mode == 'run' then
+			resources:add('LUA', 'RADISH.LAUNCH_MODE', string.format('return %q', 'design'))
+		else
+			resources:add('LUA', 'RADISH.LAUNCH_MODE', string.format('return %q', 'unknown'))
+		end
+
 		resources:commit()
 		if mode == 'build' then
 			local n = 1
