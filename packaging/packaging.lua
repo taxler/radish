@@ -37,6 +37,8 @@ local context
 if ffi.os == 'Windows' then
 	context = {}
 
+	package.path = package.path .. ';packaging/extensions/platform_win32/lua/?.lua;packaging/extensions/platform_win32/lua/?/init.lua'
+
 	local winfiles = require 'exports.mswindows.filesystem'
 	local winres = require 'exports.mswindows.resources'
 	local winmodule = require 'exports.mswindows.handles.module'
@@ -147,6 +149,7 @@ if ffi.os == 'Windows' then
 		end
 
 		do_module_folder('lua', '')
+		do_module_folder('packaging/extensions/platform_win32/lua', '')
 
 		for path_type, name in winfiles.dir('packaging/launch') do
 			if path_type == 'file' then
