@@ -212,6 +212,44 @@ return ffi.C
 			resources:add('LUA', 'RADISH.LAUNCH_MODE', string.format('return %q', 'unknown'))
 		end
 
+		local on_build = {}
+
+		local function load_extension(name)
+			do_module_folder('packaging/extensions/'..name..'/lua', '')
+			for path_type, file_name in winfiles.dir('packaging/extensions/' .. name .. '/win32_bin') do
+				if path_type == 'file' then
+					local from_path = 'packaging/extensions/' .. name .. '/win32_bin/' .. file_name
+					local to_relative = '/' .. file_name
+					on_build[#on_build+1] = function(build_folder)
+						winfiles.copy(from_path, build_folder .. to_relative)
+					end
+				end
+			end
+		end
+
+		local function do_item_folder(path, context_item, prefix)
+			for path_type, name in winfiles.dir(path) do
+				if path_type == 'folder' then
+					if name ~= '.' and name ~= '..' then
+						local item = {}
+						do_item_folder(
+							path .. '\\' .. name,
+							item,
+							prefix .. name .. '.')
+					end
+				else
+					local use_extension = name:match('%(use%s+([^%)]+)%)')
+					if use_extension then
+						load_extension(use_extension)
+					end
+				end
+			end
+		end
+
+		local universe_item = {}
+
+		do_item_folder('universe', universe_item, 'universe.')
+
 		resources:commit()
 		if mode == 'build' then
 			local n = 1
@@ -223,6 +261,9 @@ return ffi.C
 			end
 			build_folder = build_folder .. '/' .. tostring(n)
 			package_assert( winfiles.ensure_folder(build_folder), 'cannot create build folder' )
+			for _, callback in ipairs(on_build) do
+				callback(build_folder)
+			end
 			winfiles.move(self.path, build_folder .. '/' .. out_path)
 			winfiles.copy('packaging/lua51.dll', build_folder .. '/lua51.dll', true)
 		end
