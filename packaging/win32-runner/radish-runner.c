@@ -1,14 +1,20 @@
 
 #include <stdio.h>
 #include <tchar.h>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 #include "radish-resources.h"
 #include "radish-state.h"
 #include "radish-scripting.h"
 #include "radish-dialog.h"
 
+#ifdef _WIN32
 int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, char* command_line, int show_command) {
+#else
+int main(int argc, char*[] argv) {
+#endif
 	radish_state* radish;
 	radish_window host_window;
 	radish_init_for_states();
