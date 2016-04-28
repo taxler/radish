@@ -1,6 +1,8 @@
 
 local mode = ...
 
+local PLATFORM = PLATFORM or 'sdl'
+
 local ffi = require 'ffi'
 
 
@@ -9,7 +11,18 @@ local TITLE = 'Pumpkins for Everyone'
 
 local build_folder = 'builds/' .. os.date '%Y-%m-%d'
 
-local in_path = 'packaging/win32-runner/radish-runner.exe'
+local in_path
+if PLATFORM == 'sdl' then
+	in_path = 'packaging/sdl-runner/radish-runner.exe'
+elseif PLATFORM == 'win32' then
+	in_path = 'packaging/win32-runner/radish-runner.exe'
+else
+	error 'unknown runner mode'
+end
+local copy_paths = {}
+if PLATFORM == 'sdl' then
+	copy_paths[#copy_paths+1] = 'packaging/sdl-runner/SDL2.dll'
+end
 local temp_path = 'packaging/temp_output.exe'
 local out_path = string.format('%s.exe', TITLE)
 
@@ -266,6 +279,13 @@ return ffi.C
 			end
 			winfiles.move(self.path, build_folder .. '/' .. out_path)
 			winfiles.copy('packaging/lua51.dll', build_folder .. '/lua51.dll', true)
+			for _, copy_path in ipairs(copy_paths) do
+				winfiles.copy(copy_path, build_folder .. '/' .. copy_path:match('[^\\/]*$'), true)
+			end
+		else
+			for _, copy_path in ipairs(copy_paths) do
+				winfiles.copy(copy_path, temp_path:match('^(.-)[^\\/]*$') .. copy_path:match('[^\\/]*$'), true)
+			end
 		end
 	end
 end
